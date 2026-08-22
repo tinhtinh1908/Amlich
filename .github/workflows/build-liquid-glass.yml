@@ -1,9 +1,7 @@
-name: Build Liquid Glass APK
+name: Build stable UI APK
 on:
   push:
     branches: [codex-build]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -23,7 +21,7 @@ jobs:
       - name: Verify and extract clean source
         run: |
           cat source-bundle.part-* > source-bundle-fixed.zip
-          echo "2623bffd63ba87c62df84403aaf9c710d38d30ae181be90aa1b4e52a8ec9220e  source-bundle-fixed.zip" | sha256sum -c -
+          echo "3185d56289fd8df42cd355825a3b5ac7d9fd438663a2fed162ab01e6ef5a0ade  source-bundle-fixed.zip" | sha256sum -c -
           mkdir app
           unzip -q source-bundle-fixed.zip -d app
           chmod +x app/gradlew
@@ -37,7 +35,7 @@ jobs:
       - name: Upload unsigned APK
         uses: actions/upload-artifact@v4
         with:
-          name: AmLichViet-release-unsigned
+          name: AmLichViet-ui-fixed-unsigned
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 1
