@@ -1,0 +1,35 @@
+name: Build Liquid Glass APK
+on:
+  push:
+    branches: [codex-build]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Extract clean source
+        run: |
+          mkdir app
+          unzip -q source-bundle.zip -d app
+          chmod +x app/gradlew
+      - name: Build release APK
+        working-directory: app
+        run: ./gradlew --no-daemon clean lintRelease assembleRelease
+      - name: Upload unsigned APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AmLichViet-release-unsigned
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 1
