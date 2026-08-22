@@ -16,14 +16,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
-      - name: Extract clean source
+      - name: Verify and extract clean source
         run: |
+          cat source-bundle.part-* > source-bundle-fixed.zip
+          echo "58b98f0da687f9acc46339835f93732288d65ab4227001afcc8f1ac9f186736d  source-bundle-fixed.zip" | sha256sum -c -
           mkdir app
-          unzip -q source-bundle.zip -d app
+          unzip -q source-bundle-fixed.zip -d app
           chmod +x app/gradlew
       - name: Build release APK
         working-directory: app
