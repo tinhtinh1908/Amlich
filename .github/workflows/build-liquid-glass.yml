@@ -2,6 +2,8 @@ name: Build Liquid Glass APK
 on:
   push:
     branches: [codex-build]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
