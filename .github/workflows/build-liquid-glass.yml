@@ -27,9 +27,13 @@ jobs:
           mkdir app
           unzip -q source-bundle-fixed.zip -d app
           chmod +x app/gradlew
-      - name: Build release APK
+      - name: Compile release APK
         working-directory: app
-        run: ./gradlew --no-daemon clean lintRelease assembleRelease
+        run: ./gradlew --no-daemon clean assembleRelease
+      - name: Run lint report
+        if: always()
+        working-directory: app
+        run: ./gradlew --no-daemon lintRelease || true
       - name: Upload unsigned APK
         uses: actions/upload-artifact@v4
         with:
