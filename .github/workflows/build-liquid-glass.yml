@@ -21,7 +21,7 @@ jobs:
       - name: Verify and extract source
         run: |
           cat source-bundle.part-* > source-bundle-fixed.zip
-          echo "5b2f66856dd3508adadb7a3444a4cd4183bd454e2b7bf0971221472cb2a70667  source-bundle-fixed.zip" | sha256sum -c -
+          echo "09b911bfee4498d813eb721ab678b99b4364465ff508d3a1361eaddfa12bf79a  source-bundle-fixed.zip" | sha256sum -c -
           mkdir app
           unzip -q source-bundle-fixed.zip -d app
           chmod +x app/gradlew
