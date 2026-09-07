@@ -1,4 +1,4 @@
-name: Build DT Weather APK
+name: Build Xiaomi Weather Replacement
 on:
   push:
     branches: [weather-build]
@@ -21,7 +21,7 @@ jobs:
       - name: Verify and extract source
         run: |
           cat source-bundle.part-* > source-bundle-fixed.zip
-          echo "e733053fc599172427c87a7149fe6acf2afd5c6d8d9ca5b2f486be75124e2544  source-bundle-fixed.zip" | sha256sum -c -
+          echo "5b2f66856dd3508adadb7a3444a4cd4183bd454e2b7bf0971221472cb2a70667  source-bundle-fixed.zip" | sha256sum -c -
           mkdir app
           unzip -q source-bundle-fixed.zip -d app
           chmod +x app/gradlew
@@ -35,7 +35,7 @@ jobs:
       - name: Upload unsigned APK
         uses: actions/upload-artifact@v4
         with:
-          name: DT-Weather-unsigned
+          name: Xiaomi-Weather-Replacement-unsigned
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
           retention-days: 3
