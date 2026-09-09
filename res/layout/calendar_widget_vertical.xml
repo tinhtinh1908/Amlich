@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:gravity="center" android:orientation="vertical" android:id="@+id/widget_root" android:background="@drawable/widget_background" android:padding="8.0dp" android:layout_width="match_parent" android:layout_height="match_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView android:textSize="10.0sp" android:textStyle="bold" android:textColor="@color/widget_blue_dark" android:ellipsize="end" android:gravity="center" android:id="@+id/widget_month_year" android:layout_width="match_parent" android:layout_height="wrap_content" android:maxLines="1" android:includeFontPadding="false" android:fontFamily="sans-serif-medium" />
+    <LinearLayout android:gravity="center" android:orientation="vertical" android:background="@drawable/widget_date_background" android:paddingTop="3.0dp" android:paddingBottom="3.0dp" android:layout_width="match_parent" android:layout_height="0.0dp" android:layout_marginTop="6.0dp" android:layout_weight="1.0">
+        <TextView android:textSize="9.0sp" android:textStyle="bold" android:textColor="@color/white" android:gravity="center" android:id="@+id/widget_weekday" android:layout_width="match_parent" android:layout_height="wrap_content" android:maxLines="1" android:includeFontPadding="false" android:fontFamily="sans-serif-medium" />
+        <TextView android:textSize="43.0sp" android:textStyle="bold" android:textColor="@color/white" android:gravity="center" android:id="@+id/widget_day" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="1.0dp" android:includeFontPadding="false" android:fontFamily="sans-serif-medium" />
+    </LinearLayout>
+    <LinearLayout android:orientation="vertical" android:background="@drawable/widget_surface_soft" android:padding="5.0dp" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6.0dp">
+        <TextView android:textSize="12.0sp" android:textStyle="bold" android:textColor="@color/widget_text" android:ellipsize="end" android:gravity="center" android:id="@+id/widget_lunar" android:layout_width="match_parent" android:layout_height="wrap_content" android:maxLines="1" android:includeFontPadding="false" />
+        <TextView android:textSize="9.0sp" android:textColor="@color/widget_secondary" android:ellipsize="end" android:gravity="center" android:id="@+id/widget_holiday" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2.0dp" android:maxLines="1" android:includeFontPadding="false" />
+    </LinearLayout>
+</LinearLayout>

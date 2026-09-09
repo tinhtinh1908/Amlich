@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="app_background">#ff121317</color>
+    <color name="widget_blue">#ff5b96f7</color>
+    <color name="widget_blue_dark">#ff82b0ff</color>
+    <color name="widget_divider">#ff31343c</color>
+    <color name="widget_muted">#ff565a64</color>
+    <color name="widget_secondary">#ffa8acb6</color>
+    <color name="widget_sunday">#fff47474</color>
+    <color name="widget_text">#fff5f7fa</color>
+</resources>
