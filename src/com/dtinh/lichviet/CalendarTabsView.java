@@ -28,7 +28,7 @@ public final class CalendarTabsView extends LinearLayout {
     private final LinearLayout months;
     private final ScrollView scroll;
     private final TextView title;
-    private final NavButton yearTab, monthTab;
+    private final NavButton modeButton, todayButton;
     private int year;
     private boolean showingYear;
 
@@ -79,27 +79,20 @@ public final class CalendarTabsView extends LinearLayout {
         navigation.setGravity(Gravity.CENTER_VERTICAL);
         NavButton picker = new NavButton("Chọn ngày", 0);
         picker.setOnClickListener(v -> { showYear(false); month.openDatePicker(); });
-        yearTab = new NavButton("Năm", 1);
-        yearTab.setOnClickListener(v -> {
-            if (!showingYear) {
+        modeButton = new NavButton("Năm", 1);
+        modeButton.setOnClickListener(v -> {
+            if (showingYear) {
+                showYear(false);
+            } else {
                 year = Math.max(1900, Math.min(2100, month.getSelectedYear()));
                 rebuild(); showYear(true);
             }
         });
-        NavButton today = new NavButton("Hôm nay", 2);
-        today.setOnClickListener(v -> {
-            month.selectToday();
-            if (showingYear) {
-                year = Calendar.getInstance().get(Calendar.YEAR); rebuild();
-                scroll.post(() -> scroll.smoothScrollTo(0,
-                        months.getChildAt(Calendar.getInstance().get(Calendar.MONTH) / 3).getTop()));
-            }
-        });
-        monthTab = new NavButton("Tháng", 3);
-        monthTab.setOnClickListener(v -> showYear(false));
+        todayButton = new NavButton("Hôm nay", 2);
+        todayButton.setOnClickListener(v -> month.selectToday());
         NavButton settings = new NavButton("Cài đặt", 4);
         settings.setOnClickListener(v -> activity.startActivity(new Intent(activity, SettingsActivity.class)));
-        for (NavButton item : new NavButton[]{picker, yearTab, today, monthTab, settings}) {
+        for (NavButton item : new NavButton[]{picker, modeButton, todayButton, settings}) {
             LayoutParams lp = new LayoutParams(0, dp(56), 1);
             lp.setMargins(dp(3), 0, dp(3), 0);
             navigation.addView(item, lp);
@@ -131,9 +124,8 @@ public final class CalendarTabsView extends LinearLayout {
         showingYear = visible;
         yearPage.setVisibility(visible ? VISIBLE : GONE);
         month.setVisibility(visible ? GONE : VISIBLE);
-        yearTab.setSelected(visible); monthTab.setSelected(!visible);
-        yearTab.setActive(visible);
-        monthTab.setActive(!visible);
+        modeButton.setDestination(visible ? "Tháng" : "Năm", visible ? 3 : 1);
+        todayButton.setVisibility(visible ? GONE : VISIBLE);
     }
     public void saveState(Bundle out) {
         out.putInt("overview_year", year);
@@ -181,7 +173,7 @@ public final class CalendarTabsView extends LinearLayout {
             }
         }
     }
-    /** Five equal touch targets; icons are drawn vectors, independent of system fonts. */
+    /** One mode switch; hidden actions give their space to the remaining buttons. */
     private final class NavButton extends LinearLayout {
         private final TextView label;
         private final NavIcon icon;
@@ -191,12 +183,18 @@ public final class CalendarTabsView extends LinearLayout {
             setClickable(true); setFocusable(true); setContentDescription(name);
             icon = new NavIcon(kind);
             addView(icon, new LayoutParams(dp(23), dp(23)));
-            label = text(name, 10);
+            label = text(name, 11);
             label.setGravity(Gravity.CENTER); label.setSingleLine(true);
             label.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
             LayoutParams textParams = new LayoutParams(-1, dp(18));
             textParams.topMargin = dp(3); addView(label, textParams);
             setActive(false);
+        }
+        void setDestination(String name, int kind) {
+            label.setText(name);
+            setContentDescription(name);
+            icon.kind = kind;
+            icon.invalidate();
         }
         void setActive(boolean active) {
             setSelected(active);
@@ -209,7 +207,7 @@ public final class CalendarTabsView extends LinearLayout {
     }
     private final class NavIcon extends View {
         private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final int kind;
+        private int kind;
         private int color;
         NavIcon(int kind) { super(activity); this.kind = kind;
             setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO); }

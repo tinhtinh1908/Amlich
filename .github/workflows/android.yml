@@ -52,7 +52,7 @@ jobs:
       - name: Upload installable test APK
         uses: actions/upload-artifact@v4
         with:
-          name: AmLichViet-2.2.1-vc44-debug
+          name: AmLichViet-2.2.2-vc45-debug
           path: build/outputs/apk/debug/*.apk
           if-no-files-found: error
       - name: Upload lint report
