@@ -1,7 +1,6 @@
 package com.dtinh.lichviet;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -13,7 +12,6 @@ import android.view.View;
 import android.view.WindowInsets;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
-import android.widget.NumberPicker;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import java.util.Calendar;
@@ -28,7 +26,7 @@ public final class CalendarTabsView extends LinearLayout {
     private final LinearLayout months;
     private final ScrollView scroll;
     private final TextView title;
-    private final NavButton modeButton, todayButton;
+    private final NavButton pickerButton, modeButton, todayButton;
     private int year;
     private boolean showingYear;
 
@@ -36,7 +34,6 @@ public final class CalendarTabsView extends LinearLayout {
         super(activity);
         this.activity = activity;
         this.month = month;
-        month.useExternalNavigation();
         palette = new UiKit.Palette(activity);
         year = Math.max(1900, Math.min(2100, state == null
                 ? Calendar.getInstance().get(Calendar.YEAR) : state.getInt("overview_year", 2026)));
@@ -60,8 +57,7 @@ public final class CalendarTabsView extends LinearLayout {
         title = text("", 22);
         title.setGravity(Gravity.CENTER);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        title.setContentDescription("Chọn năm");
-        title.setOnClickListener(v -> chooseYear());
+        title.setContentDescription("Năm đang xem");
         header.addView(title, new LayoutParams(0, -1, 1));
         TextView next = button("›", "Năm sau");
         next.setBackground(UiKit.rounded(palette.surface, dp(15)));
@@ -77,8 +73,10 @@ public final class CalendarTabsView extends LinearLayout {
         LinearLayout navigation = new LinearLayout(activity);
         navigation.setPadding(dp(10), dp(4), dp(10), dp(12));
         navigation.setGravity(Gravity.CENTER_VERTICAL);
-        NavButton picker = new NavButton("Chọn ngày", 0);
-        picker.setOnClickListener(v -> { showYear(false); month.openDatePicker(); });
+        pickerButton = new NavButton("Chọn ngày", 0);
+        pickerButton.setOnClickListener(v -> {
+            if (showingYear) chooseYear(); else month.openDatePicker();
+        });
         modeButton = new NavButton("Năm", 1);
         modeButton.setOnClickListener(v -> {
             if (showingYear) {
@@ -92,7 +90,7 @@ public final class CalendarTabsView extends LinearLayout {
         todayButton.setOnClickListener(v -> month.selectToday());
         NavButton settings = new NavButton("Cài đặt", 4);
         settings.setOnClickListener(v -> activity.startActivity(new Intent(activity, SettingsActivity.class)));
-        for (NavButton item : new NavButton[]{picker, modeButton, todayButton, settings}) {
+        for (NavButton item : new NavButton[]{pickerButton, modeButton, todayButton, settings}) {
             LayoutParams lp = new LayoutParams(0, dp(56), 1);
             lp.setMargins(dp(3), 0, dp(3), 0);
             navigation.addView(item, lp);
@@ -124,6 +122,7 @@ public final class CalendarTabsView extends LinearLayout {
         showingYear = visible;
         yearPage.setVisibility(visible ? VISIBLE : GONE);
         month.setVisibility(visible ? GONE : VISIBLE);
+        pickerButton.setDestination(visible ? "Chọn năm" : "Chọn ngày", visible ? 1 : 0);
         modeButton.setDestination(visible ? "Tháng" : "Năm", visible ? 3 : 1);
         todayButton.setVisibility(visible ? GONE : VISIBLE);
     }
@@ -140,19 +139,13 @@ public final class CalendarTabsView extends LinearLayout {
         year = Math.max(1900, Math.min(2100, year + delta)); rebuild(); scroll.scrollTo(0, 0);
     }
     private void chooseYear() {
-        NumberPicker picker = new NumberPicker(activity);
-        picker.setMinValue(1900); picker.setMaxValue(2100); picker.setValue(year);
-        picker.setTextColor(palette.primary);
-        picker.setWrapSelectorWheel(false);
-        picker.setDescendantFocusability(NumberPicker.FOCUS_BLOCK_DESCENDANTS);
-        AlertDialog dialog = new AlertDialog.Builder(activity).setTitle("Chọn năm").setView(picker)
-            .setNegativeButton("Hủy", null).setPositiveButton("Xem", (d, w) -> {
-                picker.clearFocus(); year = picker.getValue(); rebuild(); scroll.scrollTo(0, 0);
-            }).create();
-        dialog.show();
-        if (dialog.getWindow() != null) dialog.getWindow().setBackgroundDrawable(
-                UiKit.rounded(palette.surface, dp(24)));
+        new WheelDatePickerDialog(activity, year, selectedYear -> {
+            year = selectedYear;
+            rebuild();
+            scroll.scrollTo(0, 0);
+        }).show();
     }
+
     private void rebuild() {
         title.setText("Năm " + year); months.removeAllViews();
         for (int r = 0; r < 4; r++) {
@@ -188,21 +181,35 @@ public final class CalendarTabsView extends LinearLayout {
             label.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
             LayoutParams textParams = new LayoutParams(-1, dp(18));
             textParams.topMargin = dp(3); addView(label, textParams);
-            setActive(false);
+            applyStyle(kind);
         }
         void setDestination(String name, int kind) {
             label.setText(name);
             setContentDescription(name);
             icon.kind = kind;
-            icon.invalidate();
+            applyStyle(kind);
         }
-        void setActive(boolean active) {
-            setSelected(active);
-            int color = active ? palette.accent : palette.secondary;
-            label.setTextColor(color); icon.color = color; icon.invalidate();
+        private void applyStyle(int kind) {
+            int color;
+            if (kind == 0) {
+                color = palette.night ? Color.rgb(100, 202, 255) : Color.rgb(33, 126, 224);
+            } else if (kind == 1 || kind == 3) {
+                color = palette.accent;
+            } else if (kind == 2) {
+                color = palette.night ? Color.rgb(91, 214, 159) : Color.rgb(24, 143, 94);
+            } else {
+                color = palette.secondary;
+            }
+            label.setTextColor(color);
+            icon.color = color;
+            icon.invalidate();
+            int fill = Color.argb(palette.night ? 46 : 32,
+                    Color.red(color), Color.green(color), Color.blue(color));
+            int ripple = Color.argb(90,
+                    Color.red(color), Color.green(color), Color.blue(color));
             setBackground(new android.graphics.drawable.RippleDrawable(
-                    android.content.res.ColorStateList.valueOf(palette.accentSoft),
-                    UiKit.rounded(active ? palette.accentSoft : palette.surface, dp(17)), null));
+                    android.content.res.ColorStateList.valueOf(ripple),
+                    UiKit.rounded(fill, dp(17)), null));
         }
     }
     private final class NavIcon extends View {

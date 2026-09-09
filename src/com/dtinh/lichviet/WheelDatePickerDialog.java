@@ -28,6 +28,8 @@ public final class WheelDatePickerDialog extends Dialog {
     private NumberPicker dayPicker;
     private final float density;
     private final Listener listener;
+    private final YearListener yearListener;
+    private final boolean yearOnly;
     private NumberPicker monthPicker;
     private TextView preview;
     private View cardView;
@@ -39,14 +41,32 @@ public final class WheelDatePickerDialog extends Dialog {
     private static final String[] MONTHS = {"Thg 1", "Thg 2", "Thg 3", "Thg 4", "Thg 5", "Thg 6", "Thg 7", "Thg 8", "Thg 9", "Thg 10", "Thg 11", "Thg 12"};
 
     public interface Listener {
-        void onDateSelected(int i, int i2, int i3);
+        void onDateSelected(int year, int month, int day);
+    }
+
+    public interface YearListener {
+        void onYearSelected(int year);
     }
 
     public WheelDatePickerDialog(Context context, Calendar calendar, Listener listener) {
         super(context);
         this.context = context;
         this.listener = listener;
+        this.yearListener = null;
+        this.yearOnly = false;
         this.value = (Calendar) calendar.clone();
+        this.density = context.getResources().getDisplayMetrics().density;
+        this.colors = new UiKit.Palette(context);
+    }
+
+    public WheelDatePickerDialog(Context context, int year, YearListener listener) {
+        super(context);
+        this.context = context;
+        this.listener = null;
+        this.yearListener = listener;
+        this.yearOnly = true;
+        this.value = Calendar.getInstance();
+        this.value.set(Calendar.YEAR, Math.max(1900, Math.min(2100, year)));
         this.density = context.getResources().getDisplayMetrics().density;
         this.colors = new UiKit.Palette(context);
     }
@@ -91,7 +111,7 @@ public final class WheelDatePickerDialog extends Dialog {
         linearLayout.setBackground(UiKit.rounded(
                 UiKit.dialogSurface(this.colors), dp(28.0f)));
         this.cardView = linearLayout;
-        linearLayout.addView(text("Chọn ngày", 22.0f, this.colors.primary, 1), matchWrap());
+        linearLayout.addView(text(this.yearOnly ? "Chọn năm" : "Chọn ngày", 22.0f, this.colors.primary, 1), matchWrap());
         this.preview = text("", 13.0f, this.colors.accent, 1);
         LinearLayout.LayoutParams layoutParamsMatchWrap = matchWrap();
         layoutParamsMatchWrap.topMargin = dp(6.0f);
@@ -104,19 +124,27 @@ public final class WheelDatePickerDialog extends Dialog {
         linearLayout.addView(view, layoutParams);
         LinearLayout linearLayout2 = new LinearLayout(this.context);
         linearLayout2.setOrientation(LinearLayout.HORIZONTAL);
-        linearLayout2.addView(label("NGÀY"), weighted());
-        linearLayout2.addView(label("THÁNG"), weighted());
-        linearLayout2.addView(label("NĂM"), weighted());
+        if (this.yearOnly) {
+            linearLayout2.addView(label("NĂM"), weighted());
+        } else {
+            linearLayout2.addView(label("NGÀY"), weighted());
+            linearLayout2.addView(label("THÁNG"), weighted());
+            linearLayout2.addView(label("NĂM"), weighted());
+        }
         linearLayout.addView(linearLayout2, matchWrap());
         LinearLayout linearLayout3 = new LinearLayout(this.context);
-        linearLayout3.setGravity(17);
+        linearLayout3.setGravity(Gravity.CENTER);
         linearLayout3.setOrientation(LinearLayout.HORIZONTAL);
-        this.dayPicker = picker();
-        this.monthPicker = picker();
         this.yearPicker = picker();
-        linearLayout3.addView(this.dayPicker, weightedHeight(150.0f));
-        linearLayout3.addView(this.monthPicker, weightedHeight(150.0f));
-        linearLayout3.addView(this.yearPicker, weightedHeight(150.0f));
+        if (this.yearOnly) {
+            linearLayout3.addView(this.yearPicker, weightedHeight(150.0f));
+        } else {
+            this.dayPicker = picker();
+            this.monthPicker = picker();
+            linearLayout3.addView(this.dayPicker, weightedHeight(150.0f));
+            linearLayout3.addView(this.monthPicker, weightedHeight(150.0f));
+            linearLayout3.addView(this.yearPicker, weightedHeight(150.0f));
+        }
         linearLayout.addView(linearLayout3, matchWrap());
         configurePickers();
         LinearLayout linearLayout4 = new LinearLayout(this.context);
@@ -134,7 +162,15 @@ public final class WheelDatePickerDialog extends Dialog {
         textViewActionButton2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view2) {
-                WheelDatePickerDialog.this.listener.onDateSelected(WheelDatePickerDialog.this.yearPicker.getValue(), WheelDatePickerDialog.this.monthPicker.getValue(), WheelDatePickerDialog.this.dayPicker.getValue());
+                if (WheelDatePickerDialog.this.yearOnly) {
+                    WheelDatePickerDialog.this.yearListener.onYearSelected(
+                            WheelDatePickerDialog.this.yearPicker.getValue());
+                } else {
+                    WheelDatePickerDialog.this.listener.onDateSelected(
+                            WheelDatePickerDialog.this.yearPicker.getValue(),
+                            WheelDatePickerDialog.this.monthPicker.getValue(),
+                            WheelDatePickerDialog.this.dayPicker.getValue());
+                }
                 WheelDatePickerDialog.this.dismiss();
             }
         });
@@ -161,29 +197,29 @@ public final class WheelDatePickerDialog extends Dialog {
     }
 
     private void configurePickers() {
+        this.yearPicker.setMinValue(1900);
+        this.yearPicker.setMaxValue(2100);
+        this.yearPicker.setWrapSelectorWheel(false);
+        this.yearPicker.setValue(this.value.get(Calendar.YEAR));
+        if (this.yearOnly) {
+            this.yearPicker.setOnValueChangedListener((picker, oldValue, newValue) -> updatePreview());
+            return;
+        }
         this.dayPicker.setMinValue(1);
         this.monthPicker.setMinValue(0);
         this.monthPicker.setMaxValue(11);
         this.monthPicker.setDisplayedValues(MONTHS);
-        this.yearPicker.setMinValue(1900);
-        this.yearPicker.setMaxValue(2100);
-        this.yearPicker.setWrapSelectorWheel(false);
-        this.monthPicker.setValue(this.value.get(2));
-        this.yearPicker.setValue(this.value.get(1));
-        refreshDayMaximum(this.value.get(5));
-        NumberPicker.OnValueChangeListener onValueChangeListener = new NumberPicker.OnValueChangeListener() {
-            @Override
-            public void onValueChange(NumberPicker numberPicker, int i, int i2) {
-                if (numberPicker == WheelDatePickerDialog.this.monthPicker || numberPicker == WheelDatePickerDialog.this.yearPicker) {
-                    WheelDatePickerDialog wheelDatePickerDialog = WheelDatePickerDialog.this;
-                    wheelDatePickerDialog.refreshDayMaximum(wheelDatePickerDialog.dayPicker.getValue());
-                }
-                WheelDatePickerDialog.this.updatePreview();
+        this.monthPicker.setValue(this.value.get(Calendar.MONTH));
+        refreshDayMaximum(this.value.get(Calendar.DAY_OF_MONTH));
+        NumberPicker.OnValueChangeListener changeListener = (picker, oldValue, newValue) -> {
+            if (picker == this.monthPicker || picker == this.yearPicker) {
+                refreshDayMaximum(this.dayPicker.getValue());
             }
+            updatePreview();
         };
-        this.dayPicker.setOnValueChangedListener(onValueChangeListener);
-        this.monthPicker.setOnValueChangedListener(onValueChangeListener);
-        this.yearPicker.setOnValueChangedListener(onValueChangeListener);
+        this.dayPicker.setOnValueChangedListener(changeListener);
+        this.monthPicker.setOnValueChangedListener(changeListener);
+        this.yearPicker.setOnValueChangedListener(changeListener);
     }
 
 
@@ -198,7 +234,9 @@ public final class WheelDatePickerDialog extends Dialog {
 
 
     public void updatePreview() {
-        if (this.preview == null || this.dayPicker == null) {
+        if (this.preview == null || this.yearPicker == null) return;
+        if (this.yearOnly) {
+            this.preview.setText("Năm " + this.yearPicker.getValue());
             return;
         }
         Calendar calendar = Calendar.getInstance();

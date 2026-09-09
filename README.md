@@ -1,13 +1,27 @@
-# Lịch Việt 2.2.2 — Java thuần
+# Lịch Việt 2.3.0 — Java thuần
 
 Bản này dùng repo `tinhtinh1908/Am-lich-Viet-Nam` v1.8.4 làm nền Gradle ổn
 định và nhập toàn bộ chức năng từ source v2.0.0. Rust/JNI/NDK đã được loại bỏ;
 lõi âm lịch chạy hoàn toàn bằng Java.
 
+## Thay đổi 2.3.0
+
+- Nút đầu tiên đổi theo màn hình: **Chọn năm** trong lịch năm và **Chọn ngày**
+  trong lịch tháng. Tiêu đề năm phía trên chỉ hiển thị, không còn mở hộp chọn.
+- Bộ chọn năm dùng cùng kiểu thẻ, màu và vòng chọn với bộ chọn ngày.
+- Lịch năm có 3 nút: Chọn năm, Tháng, Cài đặt. Lịch tháng có 4 nút:
+  Chọn ngày, Năm, Hôm nay, Cài đặt; mỗi chức năng có màu nhận diện riêng.
+- Làm nền widget sáng/tối, thẻ phụ và nút điều hướng trong hơn; giảm lớp phủ
+  tối trên ảnh nền widget để ảnh rõ hơn mà chữ vẫn dễ đọc.
+- Chuyển toàn bộ ảnh launcher và ảnh xem trước widget sang WebP lossless, giữ
+  nguyên pixel của ảnh nguồn và giảm dung lượng tài nguyên.
+- Dọn điều hướng cũ nằm trong `CalendarMonthView` và bổ sung smoke test cho
+  cả bộ chọn năm, bộ chọn ngày, giao diện sáng và tối.
+
 ## Thay đổi 2.2.2
 
 - Gộp Năm/Tháng thành một nút chuyển đổi, nhãn và icon chỉ chế độ sẽ mở.
-- Lịch năm có 3 nút: Chọn ngày, Tháng, Cài đặt; ẩn Hôm nay hoàn toàn.
+- Lịch năm có 3 nút: Chọn năm, Tháng, Cài đặt; ẩn Hôm nay hoàn toàn.
 - Lịch tháng có 4 nút: Chọn ngày, Năm, Hôm nay, Cài đặt.
 - Các nút tự chia đều chiều rộng; kiểm tra cả số lượng nút và đổi sáng/tối trên giả lập.
 
@@ -33,7 +47,7 @@ lõi âm lịch chạy hoàn toàn bằng Java.
 
 Workflow `.github/workflows/android.yml` chạy khi push vào `main` hoặc chọn
 Run workflow. Runner cài JDK 17, SDK 34, chạy kiểm thử lịch âm/ngày lễ,
-build APK debug và Android lint. Tải APK trong Artifacts của lần chạy.
+build APK debug, APK release chưa ký và Android lint. Tải APK trong Artifacts của lần chạy.
 APK này ký bằng khóa debug của runner, không dùng khóa phát hành cũ và
 không bảo đảm cài đè được bản đã cài. Khóa ký riêng không được đưa lên repo.
 
@@ -118,6 +132,6 @@ phát hành bằng khóa riêng.
 ## Thông tin gói
 
 - Package: `com.dtinh.lichviet`
-- Version: `2.2.2` (`versionCode 45`)
+- Version: `2.3.0` (`versionCode 46`)
 - Min SDK: 30
 - Target SDK: 34

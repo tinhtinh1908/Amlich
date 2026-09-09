@@ -1,7 +1,6 @@
 package com.dtinh.lichviet;
 
 import android.animation.ValueAnimator;
-import android.app.Activity;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Bitmap;
@@ -21,8 +20,6 @@ import java.util.Set;
 
 
 public final class CalendarMonthView extends View {
-    private boolean externalNavigation;
-    public void useExternalNavigation() { externalNavigation = true; invalidate(); }
     public void openDatePicker() { showDatePicker(); }
     public void selectToday() { goToday(); }
     public long getSelectedDateMillis() { return selected.getTimeInMillis(); }
@@ -41,7 +38,6 @@ public final class CalendarMonthView extends View {
     private int controlDivider;
     private int controlPrimary;
     private int controlSecondary;
-    private final RectF settingsButton;
     private float cellWidth;
     private final List<DayCell> dayCells;
     private final float density;
@@ -56,13 +52,10 @@ public final class CalendarMonthView extends View {
     private int insetTop;
     private final Paint.FontMetrics metrics;
     private boolean moved;
-    private final RectF nextDayButton;
     private final RectF nextMonthButton;
     private final RectF noteHitArea;
     private Set<String> noteKeys;
     private final Paint paint;
-    private final RectF pickerButton;
-    private final RectF previousDayButton;
     private final RectF previousMonthButton;
     private float rowHeight;
     private final Calendar selected;
@@ -80,7 +73,6 @@ public final class CalendarMonthView extends View {
     private int textPrimary;
     private int textSecondary;
     private Calendar today;
-    private final RectF todayButton;
     private int visibleRows;
     private float weekTop;
 
@@ -97,11 +89,6 @@ public final class CalendarMonthView extends View {
         this.noteKeys = NoteRepository.snapshotKeys(context);
         this.previousMonthButton = new RectF();
         this.nextMonthButton = new RectF();
-        this.previousDayButton = new RectF();
-        this.todayButton = new RectF();
-        this.nextDayButton = new RectF();
-        this.settingsButton = new RectF();
-        this.pickerButton = new RectF();
         this.detailPanel = new RectF();
         this.noteHitArea = new RectF();
         this.density = getResources().getDisplayMetrics().density;
@@ -244,7 +231,6 @@ public final class CalendarMonthView extends View {
         drawCalendarBase(canvas);
         drawHeaderButtons(canvas);
         drawDetailPanel(canvas, this.selected);
-        if (!externalNavigation) drawBottomControls(canvas);
     }
 
     private void drawCalendarBase(Canvas canvas) {
@@ -301,30 +287,20 @@ public final class CalendarMonthView extends View {
         float width = getWidth();
         this.cellWidth = width / 7.0f;
         float contentTop = this.insetTop;
-        float contentBottom = getHeight() - this.insetBottom + (externalNavigation ? dp(62.0f) : 0);
+        float contentBottom = getHeight() - this.insetBottom;
         float headerHeight = contentTop + dp(62.0f);
         this.weekTop = headerHeight;
         this.gridTop = headerHeight + dp(29.0f);
         Calendar calendar = (Calendar) this.displayed.clone();
         this.visibleRows = Math.max(5, Math.min(6, ((((calendar.get(7) + 5) % 7) + calendar.getActualMaximum(5)) + 6) / 7));
-        float availableRowHeight = ((contentBottom - this.gridTop) - dp(294.0f)) / this.visibleRows;
-        float fMax = Math.max(dp(46.0f), externalNavigation
-                ? availableRowHeight : Math.min(dp(58.0f), availableRowHeight));
+        float availableRowHeight = ((contentBottom - this.gridTop) - dp(232.0f)) / this.visibleRows;
+        float fMax = Math.max(dp(46.0f), availableRowHeight);
         this.rowHeight = fMax;
         this.gridBottom = this.gridTop + (fMax * this.visibleRows);
-        float height = contentBottom - dp(62.0f);
-        float fM0dp2 = dp(50.0f);
-        RectF rectF = new RectF(dp(78.0f), height, width - dp(78.0f), contentBottom - dp(12.0f));
-        float fWidth = rectF.width() / 3.0f;
-        this.previousDayButton.set(rectF.left, rectF.top, rectF.left + fWidth, rectF.bottom);
-        float f = fWidth * 2.0f;
-        this.todayButton.set(rectF.left + fWidth, rectF.top, rectF.left + f, rectF.bottom);
-        this.nextDayButton.set(rectF.left + f, rectF.top, rectF.right, rectF.bottom);
-        float f2 = fM0dp2 + height;
-        this.pickerButton.set(dp(14.0f), height, dp(64.0f), f2);
-        this.settingsButton.set(width - dp(64.0f), height, width - dp(14.0f), f2);
-        float fM0dp3 = height - dp(10.0f);
-        this.detailPanel.set(dp(12.0f), Math.max(this.gridBottom + dp(10.0f), fM0dp3 - dp(214.0f)), width - dp(12.0f), fM0dp3);
+        float detailBottom = contentBottom - dp(10.0f);
+        this.detailPanel.set(dp(12.0f),
+                Math.max(this.gridBottom + dp(10.0f), detailBottom - dp(214.0f)),
+                width - dp(12.0f), detailBottom);
         float fM0dp4 = dp(40.0f);
         this.previousMonthButton.set(dp(14.0f), contentTop + dp(10.0f),
                 dp(14.0f) + fM0dp4, contentTop + dp(10.0f) + fM0dp4);
@@ -406,7 +382,7 @@ public final class CalendarMonthView extends View {
             boolean zSameDate = sameDate(calendar2, this.today);
             boolean zSameDate2 = sameDate(calendar2, calendar);
             float fCenterX = next.bounds.centerX();
-            float contentOffset = externalNavigation ? Math.max(0, (this.rowHeight - dp(50.0f)) / 2) : 0;
+            float contentOffset = Math.max(0, (this.rowHeight - dp(50.0f)) / 2);
             float fM0dp = next.bounds.top + contentOffset + dp(19.0f);
             float fM0dp2 = dp((zSameDate2 ? ((float) Math.sin(((double) this.selectionPulse) * 3.141592653589793d)) * 2.2f : 0.0f) + 18.0f);
             if (zSameDate) {
@@ -506,49 +482,6 @@ public final class CalendarMonthView extends View {
         }
     }
 
-    private void drawBottomControls(Canvas canvas) {
-        RectF rectF = new RectF(this.previousDayButton.left, this.previousDayButton.top, this.nextDayButton.right, this.nextDayButton.bottom);
-        drawSurface(canvas, rectF, dp(19.0f), this.surface);
-        this.paint.setStyle(Paint.Style.STROKE);
-        this.paint.setStrokeWidth(dp(0.8f));
-        this.paint.setColor(this.controlDivider);
-        canvas.drawRoundRect(rectF, dp(19.0f), dp(19.0f), this.paint);
-        setText(dp(22.0f), this.controlSecondary, 0, Paint.Align.CENTER);
-        canvas.drawText("‹", this.previousDayButton.centerX(), baselineCenter(this.previousDayButton.top, this.previousDayButton.height()), this.paint);
-        canvas.drawText("›", this.nextDayButton.centerX(), baselineCenter(this.nextDayButton.top, this.nextDayButton.height()), this.paint);
-        setText(dp(11.5f), this.accent, 1, Paint.Align.CENTER);
-        canvas.drawText("HÔM NAY", this.todayButton.centerX(), baselineCenter(this.todayButton.top, this.todayButton.height()), this.paint);
-        drawSurface(canvas, this.pickerButton, dp(18.0f), this.accent);
-        drawDatePickerIcon(canvas, this.pickerButton.centerX(), this.pickerButton.centerY());
-        drawSurface(canvas, this.settingsButton, dp(18.0f), this.accent);
-        drawSettingsIcon(canvas, this.settingsButton.centerX(), this.settingsButton.centerY());
-    }
-
-    private void drawSettingsIcon(Canvas canvas, float f, float f2) {
-        this.paint.setStyle(Paint.Style.STROKE);
-        this.paint.setStrokeWidth(dp(2.0f));
-        this.paint.setStrokeCap(Paint.Cap.ROUND);
-        this.paint.setColor(-1);
-        canvas.drawLine(f - dp(8.0f), f2 - dp(6.0f), f + dp(8.0f), f2 - dp(6.0f), this.paint);
-        canvas.drawLine(f - dp(8.0f), f2, f + dp(8.0f), f2, this.paint);
-        canvas.drawLine(f - dp(8.0f), f2 + dp(6.0f), f + dp(8.0f), f2 + dp(6.0f), this.paint);
-        this.paint.setStyle(Paint.Style.FILL);
-    }
-
-    private void drawDatePickerIcon(Canvas canvas, float f, float f2) {
-        this.paint.setStyle(Paint.Style.STROKE);
-        this.paint.setStrokeWidth(dp(1.8f));
-        this.paint.setStrokeCap(Paint.Cap.ROUND);
-        this.paint.setStrokeJoin(Paint.Join.ROUND);
-        this.paint.setColor(-1);
-        RectF rectF = new RectF(f - dp(9.0f), f2 - dp(9.0f), dp(9.0f) + f, dp(9.0f) + f2);
-        canvas.drawRoundRect(rectF, dp(3.0f), dp(3.0f), this.paint);
-        canvas.drawLine(rectF.left, f2 - dp(3.5f), rectF.right, f2 - dp(3.5f), this.paint);
-        this.paint.setStyle(Paint.Style.FILL);
-        setText(dp(8.5f), -1, 1, Paint.Align.CENTER);
-        canvas.drawText("31", f, f2 + dp(5.0f), this.paint);
-    }
-
     private void drawSurface(Canvas canvas, RectF bounds, float radius, int color) {
         this.paint.setShader(null);
         this.paint.setStyle(Paint.Style.FILL);
@@ -614,28 +547,6 @@ public final class CalendarMonthView extends View {
             changeMonth(1);
             return;
         }
-        if (!externalNavigation) {
-        if (this.pickerButton.contains(f, f2)) {
-            showDatePicker();
-            return;
-        }
-        if (this.settingsButton.contains(f, f2)) {
-            showSettings();
-            return;
-        }
-        if (this.previousDayButton.contains(f, f2)) {
-            changeSelectedDay(-1);
-            return;
-        }
-        if (this.nextDayButton.contains(f, f2)) {
-            changeSelectedDay(1);
-            return;
-        }
-        if (this.todayButton.contains(f, f2)) {
-            goToday();
-            return;
-        }
-        }
         if (this.noteHitArea.contains(f, f2)) {
             showNoteEditor();
             return;
@@ -675,13 +586,6 @@ public final class CalendarMonthView extends View {
         }).show();
     }
 
-    private void showSettings() {
-        Context context = getContext();
-        if (context instanceof Activity) {
-            context.startActivity(new android.content.Intent(context, SettingsActivity.class));
-        }
-    }
-
     private void goToday() {
         Calendar calendar = (Calendar) this.displayed.clone();
         Calendar calendar2 = (Calendar) this.selected.clone();
@@ -690,17 +594,6 @@ public final class CalendarMonthView extends View {
         normalize(calendar3);
         this.selected.setTimeInMillis(this.today.getTimeInMillis());
         this.displayed.setTimeInMillis(this.today.getTimeInMillis());
-        this.displayed.set(5, 1);
-        startTransitionIfMonthChanged(calendar, calendar2);
-        startSelectionAnimation();
-        invalidate();
-    }
-
-    private void changeSelectedDay(int i) {
-        Calendar calendar = (Calendar) this.displayed.clone();
-        Calendar calendar2 = (Calendar) this.selected.clone();
-        this.selected.add(5, i);
-        this.displayed.setTimeInMillis(this.selected.getTimeInMillis());
         this.displayed.set(5, 1);
         startTransitionIfMonthChanged(calendar, calendar2);
         startSelectionAnimation();

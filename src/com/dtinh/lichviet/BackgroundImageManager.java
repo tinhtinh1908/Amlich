@@ -154,7 +154,7 @@ final class BackgroundImageManager {
         clip.addRoundRect(bounds, radius, radius, Path.Direction.CW);
         canvas.clipPath(clip);
         drawCenterCrop(canvas, source, bounds, paint);
-        paint.setColor(Color.argb(126, 0, 0, 0));
+        paint.setColor(Color.argb(72, 0, 0, 0));
         canvas.drawRect(bounds, paint);
         source.recycle();
 

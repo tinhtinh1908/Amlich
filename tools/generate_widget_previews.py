@@ -9,7 +9,7 @@ from PIL import Image, ImageDraw, ImageFont
 OUT = Path(__file__).resolve().parents[1] / "res" / "drawable-nodpi"
 REGULAR = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-BG = (29, 31, 37, 242)
+BG = (29, 31, 37, 188)
 PRIMARY = "#F5F7FA"
 SECONDARY = "#A8ACB6"
 MUTED = "#565A64"
@@ -47,7 +47,7 @@ def preview_1x2():
     centered(draw, (24, 128, 256, 330), "22", font(148, True), "#FFFFFF")
     centered(draw, (22, 362, 258, 416), "ÂM 9/6", font(40, True), PRIMARY)
     centered(draw, (20, 428, 260, 482), "BÍNH NGỌ", font(32, True), SECONDARY)
-    image.save(OUT / "widget_preview_1x2.png", optimize=True)
+    image.save(OUT / "widget_preview_1x2.webp", "WEBP", lossless=True, method=6, exact=True)
 
 
 def preview_2x1():
@@ -58,7 +58,7 @@ def preview_2x1():
     draw.text((232, 42), "THÁNG 7, 2026", font=font(32, True), fill=PRIMARY)
     draw.text((232, 104), "Âm 9/6", font=font(34, True), fill=SECONDARY)
     draw.text((232, 170), "Bính Ngọ", font=font(30, True), fill=SECONDARY)
-    image.save(OUT / "widget_preview_2x1.png", optimize=True)
+    image.save(OUT / "widget_preview_2x1.webp", "WEBP", lossless=True, method=6, exact=True)
 
 
 def lunar_label(day, month):
@@ -126,7 +126,7 @@ def preview_4x4():
         centered(draw, (x0 + 2, y0 + 40, x0 + cell_w - 2, y0 + 65), lunar,
                  font(11, lunar == "Rằm"), lunar_color)
 
-    image.save(OUT / "widget_preview_4x4.png", optimize=True)
+    image.save(OUT / "widget_preview_4x4.webp", "WEBP", lossless=True, method=6, exact=True)
 
 
 def main():

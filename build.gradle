@@ -10,8 +10,8 @@ android {
         applicationId 'com.dtinh.lichviet'
         minSdk 30
         targetSdk 34
-        versionCode 45
-        versionName '2.2.2'
+        versionCode 46
+        versionName '2.3.0'
         multiDexEnabled false
     }
 

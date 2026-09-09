@@ -24,8 +24,8 @@ jobs:
           mkdir -p build/calendar-tests
           javac -encoding UTF-8 -d build/calendar-tests src/com/dtinh/lichviet/LunarCalendar.java src/com/dtinh/lichviet/HolidayUtil.java tests/LunarCalendarTest.java
           java -cp build/calendar-tests LunarCalendarTest
-      - name: Build APK and run Android lint
-        run: bash gradlew --no-daemon assembleDebug lintDebug
+      - name: Build debug and release APKs, then run Android lint
+        run: bash gradlew --no-daemon assembleDebug assembleRelease lintDebug
       - name: Enable hardware acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -52,8 +52,14 @@ jobs:
       - name: Upload installable test APK
         uses: actions/upload-artifact@v4
         with:
-          name: AmLichViet-2.2.2-vc45-debug
+          name: AmLichViet-2.3.0-vc46-debug
           path: build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+      - name: Upload unsigned release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AmLichViet-2.3.0-vc46-release-unsigned
+          path: build/outputs/apk/release/*.apk
           if-no-files-found: error
       - name: Upload lint report
         if: always()
