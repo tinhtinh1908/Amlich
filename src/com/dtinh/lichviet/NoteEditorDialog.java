@@ -41,7 +41,7 @@ public final class NoteEditorDialog {
         FrameLayout frameLayout = new FrameLayout(context);
         frameLayout.setPadding(UiKit.dp(context, 12.0f), 0, UiKit.dp(context, 12.0f), UiKit.dp(context, 12.0f));
         LinearLayout linearLayout = new LinearLayout(context);
-        linearLayout.setOrientation(1);
+        linearLayout.setOrientation(LinearLayout.VERTICAL);
         linearLayout.setPadding(UiKit.dp(context, 22.0f), UiKit.dp(context, 10.0f), UiKit.dp(context, 22.0f), UiKit.dp(context, 20.0f));
         linearLayout.setBackground(UiKit.rounded(palette.surface, UiKit.dp(context, 28.0f)));
         frameLayout.addView(linearLayout, new FrameLayout.LayoutParams(-1, -2, 80));

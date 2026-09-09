@@ -83,7 +83,7 @@ public final class LauncherIconController {
     }
 
     private static void scheduleNextRefresh(Context context) {
-        AlarmManager alarmManager = (AlarmManager) context.getSystemService("alarm");
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (alarmManager == null) {
             return;
         }
@@ -128,6 +128,7 @@ public final class LauncherIconController {
         return DATE_COMPONENT_PREFIX + String.format(Locale.US, "%02d", day);
     }
 
+    @android.annotation.TargetApi(33)
     private static final class Api33 {
         private Api33() {
         }

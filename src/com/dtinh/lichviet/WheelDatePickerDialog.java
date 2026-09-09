@@ -86,7 +86,7 @@ public final class WheelDatePickerDialog extends Dialog {
 
     private View buildContent() {
         LinearLayout linearLayout = new LinearLayout(this.context);
-        linearLayout.setOrientation(1);
+        linearLayout.setOrientation(LinearLayout.VERTICAL);
         linearLayout.setPadding(dp(22.0f), dp(21.0f), dp(22.0f), dp(18.0f));
         linearLayout.setBackground(UiKit.rounded(
                 UiKit.dialogSurface(this.colors), dp(28.0f)));
@@ -103,14 +103,14 @@ public final class WheelDatePickerDialog extends Dialog {
         layoutParams.bottomMargin = dp(10.0f);
         linearLayout.addView(view, layoutParams);
         LinearLayout linearLayout2 = new LinearLayout(this.context);
-        linearLayout2.setOrientation(0);
+        linearLayout2.setOrientation(LinearLayout.HORIZONTAL);
         linearLayout2.addView(label("NGÀY"), weighted());
         linearLayout2.addView(label("THÁNG"), weighted());
         linearLayout2.addView(label("NĂM"), weighted());
         linearLayout.addView(linearLayout2, matchWrap());
         LinearLayout linearLayout3 = new LinearLayout(this.context);
         linearLayout3.setGravity(17);
-        linearLayout3.setOrientation(0);
+        linearLayout3.setOrientation(LinearLayout.HORIZONTAL);
         this.dayPicker = picker();
         this.monthPicker = picker();
         this.yearPicker = picker();
@@ -120,7 +120,7 @@ public final class WheelDatePickerDialog extends Dialog {
         linearLayout.addView(linearLayout3, matchWrap());
         configurePickers();
         LinearLayout linearLayout4 = new LinearLayout(this.context);
-        linearLayout4.setOrientation(0);
+        linearLayout4.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams layoutParamsMatchWrap2 = matchWrap();
         layoutParamsMatchWrap2.topMargin = dp(12.0f);
         TextView textViewActionButton = actionButton("HỦY", this.colors.primary, this.colors.surfaceSoft);
