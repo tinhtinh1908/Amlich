@@ -11,7 +11,7 @@ def hierarchy():
     adb('pull', '/sdcard/ui.xml', str(out / 'ui.xml'))
     return ET.parse(out / 'ui.xml').getroot()
 def assert_navigation(year):
-    labels = {'Chọn ngày', 'Năm', 'Tháng', 'Hôm nay', 'Cài đặt'}
+    labels = {'Chọn ngày', 'Chọn năm', 'Năm', 'Tháng', 'Hôm nay', 'Cài đặt'}
     actual = [n.get('content-desc') for n in hierarchy().iter('node')
               if n.get('clickable') == 'true' and n.get('content-desc') in labels]
     expected = ['Chọn năm', 'Tháng', 'Cài đặt'] if year else ['Chọn ngày', 'Năm', 'Hôm nay', 'Cài đặt']
