@@ -307,8 +307,9 @@ public final class CalendarMonthView extends View {
         this.gridTop = headerHeight + dp(29.0f);
         Calendar calendar = (Calendar) this.displayed.clone();
         this.visibleRows = Math.max(5, Math.min(6, ((((calendar.get(7) + 5) % 7) + calendar.getActualMaximum(5)) + 6) / 7));
-        float fMax = Math.max(dp(46.0f), Math.min(dp(58.0f),
-                ((contentBottom - this.gridTop) - dp(294.0f)) / this.visibleRows));
+        float availableRowHeight = ((contentBottom - this.gridTop) - dp(294.0f)) / this.visibleRows;
+        float fMax = Math.max(dp(46.0f), externalNavigation
+                ? availableRowHeight : Math.min(dp(58.0f), availableRowHeight));
         this.rowHeight = fMax;
         this.gridBottom = this.gridTop + (fMax * this.visibleRows);
         float height = contentBottom - dp(62.0f);
@@ -405,7 +406,8 @@ public final class CalendarMonthView extends View {
             boolean zSameDate = sameDate(calendar2, this.today);
             boolean zSameDate2 = sameDate(calendar2, calendar);
             float fCenterX = next.bounds.centerX();
-            float fM0dp = next.bounds.top + dp(19.0f);
+            float contentOffset = externalNavigation ? Math.max(0, (this.rowHeight - dp(50.0f)) / 2) : 0;
+            float fM0dp = next.bounds.top + contentOffset + dp(19.0f);
             float fM0dp2 = dp((zSameDate2 ? ((float) Math.sin(((double) this.selectionPulse) * 3.141592653589793d)) * 2.2f : 0.0f) + 18.0f);
             if (zSameDate) {
                 it = it2;
@@ -445,7 +447,7 @@ public final class CalendarMonthView extends View {
             canvas.drawText(
                     fitText(HolidayUtil.getShortLabel(i3, i4, lunarDateFromSolar),
                             this.cellWidth - dp(5.0f)),
-                    fCenterX, next.bounds.top + dp(45.0f), this.paint);
+                    fCenterX, next.bounds.top + contentOffset + dp(45.0f), this.paint);
             if (!holiday.isEmpty() && next.inDisplayedMonth) {
                 this.paint.setColor(zSameDate ? -1 : this.sunday);
                 canvas.drawCircle(dp(15.0f) + fCenterX, fM0dp - dp(13.0f), dp(2.0f), this.paint);

@@ -264,7 +264,7 @@ public final class CalendarTabsView extends LinearLayout {
             Calendar date = Calendar.getInstance(); date.clear(); date.set(year, monthIndex, 1, 12, 0);
             int start = (date.get(Calendar.DAY_OF_WEEK) + 5) % 7;
             int count = date.getActualMaximum(Calendar.DAY_OF_MONTH);
-            paint.setTextSize(Math.min(dp(12), cell * .8f));
+            paint.setTextSize(Math.min(dp(11), cell * .68f));
             for (int day = 1; day <= count; day++) {
                 int position = start + day - 1, col = position % 7, row = position / 7;
                 float x = dp(4) + cell * (col + .5f), baseline = dp(77 + row * 21);
