@@ -137,13 +137,13 @@ public final class WheelDatePickerDialog extends Dialog {
         linearLayout3.setOrientation(LinearLayout.HORIZONTAL);
         this.yearPicker = picker();
         if (this.yearOnly) {
-            linearLayout3.addView(this.yearPicker, weightedHeight(150.0f));
+            linearLayout3.addView(pickerColumn(this.yearPicker), weightedHeight(150.0f));
         } else {
             this.dayPicker = picker();
             this.monthPicker = picker();
-            linearLayout3.addView(this.dayPicker, weightedHeight(150.0f));
-            linearLayout3.addView(this.monthPicker, weightedHeight(150.0f));
-            linearLayout3.addView(this.yearPicker, weightedHeight(150.0f));
+            linearLayout3.addView(pickerColumn(this.dayPicker), weightedHeight(150.0f));
+            linearLayout3.addView(pickerColumn(this.monthPicker), weightedHeight(150.0f));
+            linearLayout3.addView(pickerColumn(this.yearPicker), weightedHeight(150.0f));
         }
         linearLayout.addView(linearLayout3, matchWrap());
         configurePickers();
@@ -251,6 +251,8 @@ public final class WheelDatePickerDialog extends Dialog {
 
     private NumberPicker picker() {
         NumberPicker numberPicker = new NumberPicker(this.context);
+        numberPicker.setMinimumWidth(0);
+        numberPicker.setMinimumHeight(0);
         numberPicker.setDescendantFocusability(393216);
         numberPicker.setWrapSelectorWheel(true);
         numberPicker.setBackgroundColor(0);
@@ -260,6 +262,14 @@ public final class WheelDatePickerDialog extends Dialog {
         numberPicker.setSelectionDividerHeight(0);
         tintChildren(numberPicker);
         return numberPicker;
+    }
+
+    private View pickerColumn(NumberPicker numberPicker) {
+        FrameLayout frame = new FrameLayout(this.context);
+        frame.setClipChildren(true);
+        frame.setClipToPadding(true);
+        frame.addView(numberPicker, new FrameLayout.LayoutParams(-1, -1));
+        return frame;
     }
 
     private void tintChildren(View view) {
