@@ -26,10 +26,33 @@ jobs:
           java -cp build/calendar-tests LunarCalendarTest
       - name: Build APK and run Android lint
         run: bash gradlew --no-daemon assembleDebug lintDebug
+      - name: Enable hardware acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Verify navigation on Android and capture screenshots
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          script: |
+            adb install -r build/outputs/apk/debug/*.apk
+            python3 tools/smoke_ui.py
+      - name: Upload UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-ui-screenshots
+          path: build/ui/
+          if-no-files-found: ignore
       - name: Upload installable test APK
         uses: actions/upload-artifact@v4
         with:
-          name: AmLichViet-2.2.0-vc43-debug
+          name: AmLichViet-2.2.1-vc44-debug
           path: build/outputs/apk/debug/*.apk
           if-no-files-found: error
       - name: Upload lint report

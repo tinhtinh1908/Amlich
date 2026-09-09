@@ -21,6 +21,10 @@ import java.util.Set;
 
 
 public final class CalendarMonthView extends View {
+    private boolean externalNavigation;
+    public void useExternalNavigation() { externalNavigation = true; invalidate(); }
+    public void openDatePicker() { showDatePicker(); }
+    public void selectToday() { goToday(); }
     public long getSelectedDateMillis() { return selected.getTimeInMillis(); }
     public int getSelectedYear() { return selected.get(Calendar.YEAR); }
 
@@ -240,7 +244,7 @@ public final class CalendarMonthView extends View {
         drawCalendarBase(canvas);
         drawHeaderButtons(canvas);
         drawDetailPanel(canvas, this.selected);
-        drawBottomControls(canvas);
+        if (!externalNavigation) drawBottomControls(canvas);
     }
 
     private void drawCalendarBase(Canvas canvas) {
@@ -297,7 +301,7 @@ public final class CalendarMonthView extends View {
         float width = getWidth();
         this.cellWidth = width / 7.0f;
         float contentTop = this.insetTop;
-        float contentBottom = getHeight() - this.insetBottom;
+        float contentBottom = getHeight() - this.insetBottom + (externalNavigation ? dp(62.0f) : 0);
         float headerHeight = contentTop + dp(62.0f);
         this.weekTop = headerHeight;
         this.gridTop = headerHeight + dp(29.0f);
@@ -608,6 +612,7 @@ public final class CalendarMonthView extends View {
             changeMonth(1);
             return;
         }
+        if (!externalNavigation) {
         if (this.pickerButton.contains(f, f2)) {
             showDatePicker();
             return;
@@ -627,6 +632,7 @@ public final class CalendarMonthView extends View {
         if (this.todayButton.contains(f, f2)) {
             goToday();
             return;
+        }
         }
         if (this.noteHitArea.contains(f, f2)) {
             showNoteEditor();

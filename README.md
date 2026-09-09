@@ -1,8 +1,15 @@
-# Lịch Việt 2.2.0 — Java thuần
+# Lịch Việt 2.2.1 — Java thuần
 
 Bản này dùng repo `tinhtinh1908/Am-lich-Viet-Nam` v1.8.4 làm nền Gradle ổn
 định và nhập toàn bộ chức năng từ source v2.0.0. Rust/JNI/NDK đã được loại bỏ;
 lõi âm lịch chạy hoàn toàn bằng Java.
+
+## Thay đổi 2.2.1
+
+- Một hàng 5 nút dùng chung: Chọn ngày, Năm, Hôm nay, Tháng, Cài đặt.
+- Bỏ tab rời và các nút lùi/tiến ngày bên cạnh Hôm nay.
+- Lịch năm dùng màu, thẻ bo góc, header và màu Chủ nhật đồng bộ lịch tháng.
+- Workflow kiểm tra điều hướng trên giả lập Android và xuất ảnh sáng/tối.
 
 ## Thay đổi 2.2.0
 
@@ -79,7 +86,7 @@ Không cần Rust, Cargo, NDK hoặc `cargo-ndk`.
 
 1. Tăng `versionCode` và `versionName` trong `build.gradle`.
 2. Tạo GitHub Release mới tại repo `tinhtinh1908/Amlich`; tag nên trùng
-   `versionName`, ví dụ `2.2.0`.
+   `versionName`, ví dụ `2.2.1`.
 3. Đính kèm ít nhất một file có đuôi `.apk` vào Release và xuất bản Release.
 
 Ứng dụng gọi endpoint Release mới nhất tối đa một lần thành công trong mỗi ngày
@@ -104,6 +111,6 @@ phát hành bằng khóa riêng.
 ## Thông tin gói
 
 - Package: `com.dtinh.lichviet`
-- Version: `2.2.0` (`versionCode 43`)
+- Version: `2.2.1` (`versionCode 44`)
 - Min SDK: 30
 - Target SDK: 34
