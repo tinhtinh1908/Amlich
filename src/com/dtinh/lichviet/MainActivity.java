@@ -1,4 +1,4 @@
-ipackage com.dtinh.lichviet;
+package com.dtinh.lichviet;
 
 import android.content.Intent;
 import android.os.Bundle;
