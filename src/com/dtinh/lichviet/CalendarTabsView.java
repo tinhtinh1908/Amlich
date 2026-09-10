@@ -308,16 +308,26 @@ public final class CalendarTabsView extends FrameLayout {
             } else {
                 color = contentPalette.accent;
             }
-            label.setTextColor(color);
-            icon.color = color;
+            // Strip any alpha the palette may have baked in (photoPalette's
+            // accent carries some when frosted) so all 4 buttons go through
+            // the same, single alpha decision below instead of only the
+            // accent-colored ones reacting to the setting.
+            int rgb = Color.rgb(Color.red(color), Color.green(color), Color.blue(color));
+
+            int contentColor = Color.WHITE;
+            label.setTextColor(contentColor);
+            icon.color = contentColor;
             icon.invalidate();
-            // Buttons over a photo need a slightly stronger fill to stay readable.
-            int fillAlpha = photoBackground ? 60 : (contentPalette.night ? 46 : 32);
-            int fill = Color.argb(fillAlpha,
-                    Color.red(color), Color.green(color), Color.blue(color));
-            int rippleAlpha = photoBackground ? 110 : 90;
-            int ripple = Color.argb(rippleAlpha,
-                    Color.red(color), Color.green(color), Color.blue(color));
+
+            // Solid, opaque fill by default (same idea as the "SAO LƯU"
+            // button in Cài đặt). Only when "Nền mờ" is on AND there's a
+            // background photo do the buttons pick up transparency so the
+            // blurred photo shows through — this now applies to all 4
+            // buttons uniformly, so the toggle actually has an effect.
+            boolean frosted = photoBackground && BackgroundImageManager.isFrostedEnabled(activity);
+            int fillAlpha = frosted ? 190 : 255;
+            int fill = Color.argb(fillAlpha, Color.red(rgb), Color.green(rgb), Color.blue(rgb));
+            int ripple = Color.argb(90, 255, 255, 255);
             setBackground(new android.graphics.drawable.RippleDrawable(
                     android.content.res.ColorStateList.valueOf(ripple),
                     UiKit.rounded(fill, dp(17)), null));
