@@ -77,7 +77,7 @@ public final class CalendarTabsView extends FrameLayout {
         scroll.setFillViewport(true);
         yearPage.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
         months = new LinearLayout(activity);
-        months.setOrientation(VERTICAL);
+        months.setOrientation(LinearLayout.VERTICAL);
         scroll.addView(months, new ScrollView.LayoutParams(-1, -2));
 
         navigation = new LinearLayout(activity);
