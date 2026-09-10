@@ -1,10 +1,13 @@
 package com.dtinh.lichviet;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.Gravity;
@@ -16,17 +19,26 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import java.util.Calendar;
 
-/** Native year overview; the original lunar month view remains intact. */
-public final class CalendarTabsView extends LinearLayout {
+/**
+ * Root layout. The month view and the year overview share one full-screen
+ * content area; the navigation row floats on top of it so a user background
+ * photo shows through behind the buttons instead of a solid black bar.
+ */
+public final class CalendarTabsView extends FrameLayout {
     private final Activity activity;
     private final CalendarMonthView month;
-    private final UiKit.Palette palette;
+    private UiKit.Palette palette;
+    private UiKit.Palette contentPalette;
+    private boolean photoBackground;
     private final FrameLayout content;
-    private final LinearLayout yearPage;
+    private final YearPageView yearPage;
     private final LinearLayout months;
     private final ScrollView scroll;
+    private final LinearLayout navigation;
     private final TextView title;
-    private final NavButton pickerButton, modeButton, todayButton;
+    private final TextView previousButton;
+    private final TextView nextButton;
+    private final NavButton pickerButton, modeButton, todayButton, settingsButton;
     private int year;
     private boolean showingYear;
 
@@ -34,44 +46,42 @@ public final class CalendarTabsView extends LinearLayout {
         super(activity);
         this.activity = activity;
         this.month = month;
-        palette = new UiKit.Palette(activity);
+        reloadPalettes();
         year = Math.max(1900, Math.min(2100, state == null
                 ? Calendar.getInstance().get(Calendar.YEAR) : state.getInt("overview_year", 2026)));
-        setOrientation(VERTICAL);
-        setBackgroundColor(palette.background);
         content = new FrameLayout(activity);
-        addView(content, new LayoutParams(-1, 0, 1));
+        addView(content, new LayoutParams(-1, -1));
         content.addView(month, new FrameLayout.LayoutParams(-1, -1));
-        yearPage = new LinearLayout(activity);
-        yearPage.setOrientation(VERTICAL);
-        yearPage.setBackgroundColor(palette.background);
+        yearPage = new YearPageView(activity);
         content.addView(yearPage, new FrameLayout.LayoutParams(-1, -1));
+
         LinearLayout header = new LinearLayout(activity);
         header.setGravity(Gravity.CENTER_VERTICAL);
         header.setPadding(dp(14), dp(10), dp(14), dp(12));
-        yearPage.addView(header, new LayoutParams(-1, dp(62)));
-        TextView previous = button("‹", "Năm trước");
-        previous.setBackground(UiKit.rounded(palette.surface, dp(15)));
-        previous.setOnClickListener(v -> changeYear(-1));
-        header.addView(previous, new LayoutParams(dp(40), dp(40)));
+        yearPage.addView(header, new LinearLayout.LayoutParams(-1, dp(62)));
+        previousButton = button("‹", "Năm trước");
+        previousButton.setBackground(UiKit.rounded(contentPalette.surface, dp(15)));
+        previousButton.setOnClickListener(v -> changeYear(-1));
+        header.addView(previousButton, new LinearLayout.LayoutParams(dp(40), dp(40)));
         title = text("", 22);
         title.setGravity(Gravity.CENTER);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         title.setContentDescription("Năm đang xem");
-        header.addView(title, new LayoutParams(0, -1, 1));
-        TextView next = button("›", "Năm sau");
-        next.setBackground(UiKit.rounded(palette.surface, dp(15)));
-        next.setOnClickListener(v -> changeYear(1));
-        header.addView(next, new LayoutParams(dp(40), dp(40)));
+        header.addView(title, new LinearLayout.LayoutParams(0, -1, 1));
+        nextButton = button("›", "Năm sau");
+        nextButton.setBackground(UiKit.rounded(contentPalette.surface, dp(15)));
+        nextButton.setOnClickListener(v -> changeYear(1));
+        header.addView(nextButton, new LinearLayout.LayoutParams(dp(40), dp(40)));
+
         scroll = new ScrollView(activity);
         scroll.setFillViewport(true);
-        yearPage.addView(scroll, new LayoutParams(-1, 0, 1));
+        yearPage.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
         months = new LinearLayout(activity);
         months.setOrientation(VERTICAL);
-        months.setPadding(dp(12), dp(12), dp(12), dp(24));
         scroll.addView(months, new ScrollView.LayoutParams(-1, -2));
-        LinearLayout navigation = new LinearLayout(activity);
-        navigation.setPadding(dp(10), dp(4), dp(10), dp(12));
+
+        navigation = new LinearLayout(activity);
+        navigation.setPadding(dp(10), dp(6), dp(10), dp(12));
         navigation.setGravity(Gravity.CENTER_VERTICAL);
         pickerButton = new NavButton("Chọn ngày", 0);
         pickerButton.setOnClickListener(v -> {
@@ -88,14 +98,16 @@ public final class CalendarTabsView extends LinearLayout {
         });
         todayButton = new NavButton("Hôm nay", 2);
         todayButton.setOnClickListener(v -> month.selectToday());
-        NavButton settings = new NavButton("Cài đặt", 4);
-        settings.setOnClickListener(v -> activity.startActivity(new Intent(activity, SettingsActivity.class)));
-        for (NavButton item : new NavButton[]{pickerButton, modeButton, todayButton, settings}) {
-            LayoutParams lp = new LayoutParams(0, dp(56), 1);
+        settingsButton = new NavButton("Cài đặt", 4);
+        settingsButton.setOnClickListener(v -> activity.startActivity(new Intent(activity, SettingsActivity.class)));
+        for (NavButton item : new NavButton[]{pickerButton, modeButton, todayButton, settingsButton}) {
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(56), 1);
             lp.setMargins(dp(3), 0, dp(3), 0);
             navigation.addView(item, lp);
         }
-        addView(navigation, new LayoutParams(-1, -2));
+        LayoutParams navParams = new LayoutParams(-1, -2, Gravity.BOTTOM);
+        addView(navigation, navParams);
+
         rebuild();
         showYear(state != null && state.getBoolean("overview_visible"));
     }
@@ -104,14 +116,43 @@ public final class CalendarTabsView extends LinearLayout {
     public WindowInsets onApplyWindowInsets(WindowInsets insets) {
         android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
         setPadding(bars.left, bars.top, bars.right, bars.bottom);
-        month.setSystemInsets(0, 0);
         return WindowInsets.CONSUMED;
+    }
+
+    @Override
+    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+        super.onLayout(changed, left, top, right, bottom);
+        // The navigation row overlays the content: keep the month detail
+        // panel and the bottom of the year grid clear of it, and let the
+        // background photo run uninterrupted behind the buttons.
+        int clearance = getHeight() - navigation.getTop();
+        month.setSystemInsets(0, clearance);
+        months.setPadding(dp(12), dp(12), dp(12), dp(24) + clearance);
+    }
+
+    /** Re-reads theme and background photo state after returning from Settings. */
+    public void refreshTheme() {
+        reloadPalettes();
+        yearPage.refreshBackground();
+        title.setTextColor(contentPalette.primary);
+        previousButton.setBackground(UiKit.rounded(contentPalette.surface, dp(15)));
+        nextButton.setBackground(UiKit.rounded(contentPalette.surface, dp(15)));
+        for (NavButton item : new NavButton[]{pickerButton, modeButton, todayButton, settingsButton}) {
+            item.restyle();
+        }
+        rebuild();
+    }
+
+    private void reloadPalettes() {
+        palette = new UiKit.Palette(activity);
+        photoBackground = BackgroundImageManager.hasBackground(activity);
+        contentPalette = photoBackground ? UiKit.photoPalette(activity) : palette;
     }
 
     private int dp(float n) { return Math.round(n * getResources().getDisplayMetrics().density); }
     private TextView text(String value, int size) {
         TextView t = new TextView(activity);
-        t.setText(value); t.setTextSize(size); t.setTextColor(palette.primary);
+        t.setText(value); t.setTextSize(size); t.setTextColor(contentPalette.primary);
         t.setGravity(Gravity.CENTER_VERTICAL); return t;
     }
     private TextView button(String value, String description) {
@@ -150,13 +191,13 @@ public final class CalendarTabsView extends LinearLayout {
         title.setText("Năm " + year); months.removeAllViews();
         for (int r = 0; r < 4; r++) {
             LinearLayout row = new LinearLayout(activity);
-            months.addView(row, new LayoutParams(-1, -2));
+            months.addView(row, new LinearLayout.LayoutParams(-1, -2));
             for (int c = 0; c < 3; c++) {
                 final int m = r * 3 + c;
                 MiniMonth mini = new MiniMonth(m);
-                LinearLayout.LayoutParams lp = new LayoutParams(0, dp(196), 1);
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(196), 1);
                 lp.setMargins(dp(3), dp(4), dp(3), dp(8));
-                mini.setBackground(UiKit.rounded(palette.surface, dp(16)));
+                mini.setBackground(UiKit.rounded(contentPalette.surface, dp(16)));
                 row.addView(mini, lp);
                 mini.setContentDescription("Tháng " + (m + 1) + " năm " + year + ". Chạm để xem chi tiết");
                 mini.setOnClickListener(v -> {
@@ -166,46 +207,116 @@ public final class CalendarTabsView extends LinearLayout {
             }
         }
     }
+
+    /**
+     * Year overview page. Draws the user background photo (or the solid
+     * theme background) behind its content, matching CalendarMonthView.
+     */
+    private final class YearPageView extends LinearLayout {
+        private final Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private Bitmap backgroundImage;
+
+        YearPageView(Context context) {
+            super(context);
+            setOrientation(VERTICAL);
+            setWillNotDraw(false);
+        }
+
+        @Override
+        protected void onSizeChanged(int width, int height, int oldWidth, int oldHeight) {
+            super.onSizeChanged(width, height, oldWidth, oldHeight);
+            if (width != oldWidth || height != oldHeight) reload(width, height);
+        }
+
+        void refreshBackground() {
+            reload(getWidth(), getHeight());
+            invalidate();
+        }
+
+        private void reload(int width, int height) {
+            Bitmap replacement = BackgroundImageManager.hasBackground(getContext())
+                    ? BackgroundImageManager.load(getContext(), width, height) : null;
+            if (backgroundImage != null && backgroundImage != replacement
+                    && !backgroundImage.isRecycled()) {
+                backgroundImage.recycle();
+            }
+            backgroundImage = replacement;
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            bgPaint.setShader(null);
+            bgPaint.setStyle(Paint.Style.FILL);
+            if (backgroundImage != null && !backgroundImage.isRecycled()) {
+                BackgroundImageManager.drawCenterCrop(canvas, backgroundImage,
+                        new RectF(0.0f, 0.0f, getWidth(), getHeight()), bgPaint);
+                bgPaint.setColor(Color.argb(112, 0, 0, 0));
+                canvas.drawRect(0.0f, 0.0f, getWidth(), getHeight(), bgPaint);
+            } else {
+                bgPaint.setColor(contentPalette.background);
+                canvas.drawRect(0.0f, 0.0f, getWidth(), getHeight(), bgPaint);
+            }
+            super.onDraw(canvas);
+        }
+
+        @Override
+        protected void onDetachedFromWindow() {
+            if (backgroundImage != null && !backgroundImage.isRecycled()) {
+                backgroundImage.recycle();
+                backgroundImage = null;
+            }
+            super.onDetachedFromWindow();
+        }
+    }
+
     /** One mode switch; hidden actions give their space to the remaining buttons. */
     private final class NavButton extends LinearLayout {
         private final TextView label;
         private final NavIcon icon;
+        private int kind;
         NavButton(String name, int kind) {
             super(activity);
             setOrientation(VERTICAL); setGravity(Gravity.CENTER);
             setClickable(true); setFocusable(true); setContentDescription(name);
+            this.kind = kind;
             icon = new NavIcon(kind);
-            addView(icon, new LayoutParams(dp(23), dp(23)));
+            addView(icon, new LinearLayout.LayoutParams(dp(23), dp(23)));
             label = text(name, 11);
             label.setGravity(Gravity.CENTER); label.setSingleLine(true);
             label.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-            LayoutParams textParams = new LayoutParams(-1, dp(18));
+            LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(-1, dp(18));
             textParams.topMargin = dp(3); addView(label, textParams);
             applyStyle(kind);
         }
         void setDestination(String name, int kind) {
+            this.kind = kind;
             label.setText(name);
             setContentDescription(name);
             icon.kind = kind;
             applyStyle(kind);
         }
+        void restyle() {
+            applyStyle(kind);
+        }
         private void applyStyle(int kind) {
             int color;
-            if (kind == 0) {
-                color = palette.night ? Color.rgb(100, 202, 255) : Color.rgb(33, 126, 224);
-            } else if (kind == 1 || kind == 3) {
-                color = palette.accent;
-            } else if (kind == 2) {
-                color = palette.night ? Color.rgb(91, 214, 159) : Color.rgb(24, 143, 94);
+            if (kind == 2) {
+                // "Hôm nay" keeps its green identity in both themes.
+                color = contentPalette.night ? Color.rgb(91, 214, 159) : Color.rgb(24, 143, 94);
+            } else if (kind == 4) {
+                color = contentPalette.secondary;
             } else {
-                color = palette.secondary;
+                color = contentPalette.accent;
             }
             label.setTextColor(color);
             icon.color = color;
             icon.invalidate();
-            int fill = Color.argb(palette.night ? 46 : 32,
+            // Buttons over a photo need a slightly stronger fill to stay readable.
+            int fillAlpha = photoBackground ? 60 : (contentPalette.night ? 46 : 32);
+            int fill = Color.argb(fillAlpha,
                     Color.red(color), Color.green(color), Color.blue(color));
-            int ripple = Color.argb(90,
+            int rippleAlpha = photoBackground ? 110 : 90;
+            int ripple = Color.argb(rippleAlpha,
                     Color.red(color), Color.green(color), Color.blue(color));
             setBackground(new android.graphics.drawable.RippleDrawable(
                     android.content.res.ColorStateList.valueOf(ripple),
@@ -256,14 +367,14 @@ public final class CalendarTabsView extends LinearLayout {
             float cell = (getWidth() - dp(8)) / 7f;
             paint.setTextAlign(Paint.Align.LEFT); paint.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
             paint.setTextSize(Math.min(dp(16), getWidth() / 6f));
-            paint.setColor(current ? palette.accent : palette.primary);
+            paint.setColor(current ? contentPalette.accent : contentPalette.primary);
             canvas.drawText("Tháng " + (monthIndex + 1), dp(8), dp(28), paint);
             paint.setTextAlign(Paint.Align.CENTER); paint.setTypeface(Typeface.DEFAULT);
             paint.setTextSize(Math.min(dp(10), cell * .7f));
             String[] weekdays = {"T2", "T3", "T4", "T5", "T6", "T7", "CN"};
-            paint.setColor(palette.secondary);
+            paint.setColor(contentPalette.secondary);
             for (int i = 0; i < 7; i++) {
-                paint.setColor(i == 6 ? palette.danger : palette.secondary);
+                paint.setColor(i == 6 ? contentPalette.danger : contentPalette.secondary);
                 canvas.drawText(weekdays[i], dp(4) + cell * (i + .5f), dp(54), paint);
             }
             Calendar date = Calendar.getInstance(); date.clear(); date.set(year, monthIndex, 1, 12, 0);
@@ -275,11 +386,11 @@ public final class CalendarTabsView extends LinearLayout {
                 float x = dp(4) + cell * (col + .5f), baseline = dp(77 + row * 21);
                 boolean isToday = current && day == today.get(Calendar.DAY_OF_MONTH);
                 if (isToday) {
-                    paint.setColor(palette.accent);
-                    canvas.drawRoundRect(new android.graphics.RectF(x - cell * .48f, baseline - dp(14), x + cell * .48f,
+                    paint.setColor(contentPalette.accent);
+                    canvas.drawRoundRect(new RectF(x - cell * .48f, baseline - dp(14), x + cell * .48f,
                         baseline + dp(4)), dp(5), dp(5), paint);
                 }
-                paint.setColor(isToday ? Color.WHITE : col == 6 ? palette.danger : palette.primary);
+                paint.setColor(isToday ? Color.WHITE : col == 6 ? contentPalette.danger : contentPalette.primary);
                 canvas.drawText(Integer.toString(day), x, baseline, paint);
             }
         }

@@ -64,6 +64,55 @@ final class UiKit {
                 danger = Color.rgb(221, 75, 75);
             }
         }
+
+        private Palette(boolean night, int background, int surface, int surfaceSoft,
+                        int divider, int primary, int secondary, int muted,
+                        int accent, int accentSoft, int danger) {
+            this.night = night;
+            this.background = background;
+            this.surface = surface;
+            this.surfaceSoft = surfaceSoft;
+            this.divider = divider;
+            this.primary = primary;
+            this.secondary = secondary;
+            this.muted = muted;
+            this.accent = accent;
+            this.accentSoft = accentSoft;
+            this.danger = danger;
+        }
+    }
+
+    /**
+     * Colors for content drawn directly over a user background photo.
+     * Mirrors the palette CalendarMonthView already uses in photo mode so
+     * the month view, year page and navigation stay in sync.
+     */
+    static Palette photoPalette(Context context) {
+        boolean frosted = BackgroundImageManager.isFrostedEnabled(context);
+        if (ThemeManager.isDark(context)) {
+            return new Palette(true,
+                    frosted ? Color.argb(132, 13, 16, 21) : Color.rgb(13, 16, 21),
+                    frosted ? Color.argb(158, 27, 31, 39) : Color.argb(232, 27, 31, 39),
+                    frosted ? Color.argb(138, 37, 43, 54) : Color.argb(224, 37, 43, 54),
+                    Color.argb(72, 255, 255, 255),
+                    Color.WHITE,
+                    Color.rgb(210, 218, 230),
+                    Color.rgb(116, 128, 145),
+                    frosted ? Color.argb(210, 99, 158, 247) : Color.rgb(99, 158, 247),
+                    frosted ? Color.argb(150, 48, 70, 104) : Color.rgb(48, 70, 104),
+                    Color.rgb(255, 126, 135));
+        }
+        return new Palette(false,
+                Color.rgb(247, 248, 252),
+                frosted ? Color.argb(218, 255, 255, 255) : Color.rgb(255, 255, 255),
+                frosted ? Color.argb(205, 239, 242, 247) : Color.rgb(239, 242, 247),
+                Color.argb(96, 255, 255, 255),
+                Color.WHITE,
+                Color.rgb(218, 224, 234),
+                Color.rgb(142, 150, 164),
+                frosted ? Color.argb(214, 66, 133, 244) : Color.rgb(66, 133, 244),
+                frosted ? Color.argb(166, 225, 235, 252) : Color.rgb(225, 235, 252),
+                Color.rgb(255, 126, 135));
     }
 
     static GradientDrawable pageBackground(Palette palette) {
