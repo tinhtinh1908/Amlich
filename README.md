@@ -1,4 +1,4 @@
-#Vui lòng ghi nguồn khi lấy
+# Vui lòng ghi nguồn khi lấy
 - Ứng dụng được làm hoàn toàn bằng các mô hình AI
 # Âm lịch Việt Nam
 - Chạy offline hoàn toàn không cần internet, sẽ không có quảng cáo xuất hiện trong app
