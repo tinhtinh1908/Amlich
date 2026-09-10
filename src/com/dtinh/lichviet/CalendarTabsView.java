@@ -36,8 +36,8 @@ public final class CalendarTabsView extends FrameLayout {
     private final ScrollView scroll;
     private final LinearLayout navigation;
     private final TextView title;
-    private final TextView previousButton;
-    private final TextView nextButton;
+    private final NavArrow previousButton;
+    private final NavArrow nextButton;
     private final NavButton pickerButton, modeButton, todayButton, settingsButton;
     private int year;
     private boolean showingYear;
@@ -59,8 +59,7 @@ public final class CalendarTabsView extends FrameLayout {
         header.setGravity(Gravity.CENTER_VERTICAL);
         header.setPadding(dp(14), dp(10), dp(14), dp(12));
         yearPage.addView(header, new LinearLayout.LayoutParams(-1, dp(62)));
-        previousButton = button("‹", "Năm trước");
-        previousButton.setBackground(UiKit.rounded(contentPalette.surface, dp(15)));
+        previousButton = new NavArrow(false, "Năm trước");
         previousButton.setOnClickListener(v -> changeYear(-1));
         header.addView(previousButton, new LinearLayout.LayoutParams(dp(40), dp(40)));
         title = text("", 22);
@@ -68,8 +67,7 @@ public final class CalendarTabsView extends FrameLayout {
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         title.setContentDescription("Năm đang xem");
         header.addView(title, new LinearLayout.LayoutParams(0, -1, 1));
-        nextButton = button("›", "Năm sau");
-        nextButton.setBackground(UiKit.rounded(contentPalette.surface, dp(15)));
+        nextButton = new NavArrow(true, "Năm sau");
         nextButton.setOnClickListener(v -> changeYear(1));
         header.addView(nextButton, new LinearLayout.LayoutParams(dp(40), dp(40)));
 
@@ -135,8 +133,8 @@ public final class CalendarTabsView extends FrameLayout {
         reloadPalettes();
         yearPage.refreshBackground();
         title.setTextColor(contentPalette.primary);
-        previousButton.setBackground(UiKit.rounded(contentPalette.surface, dp(15)));
-        nextButton.setBackground(UiKit.rounded(contentPalette.surface, dp(15)));
+        previousButton.invalidate();
+        nextButton.invalidate();
         for (NavButton item : new NavButton[]{pickerButton, modeButton, todayButton, settingsButton}) {
             item.restyle();
         }
@@ -155,10 +153,45 @@ public final class CalendarTabsView extends FrameLayout {
         t.setText(value); t.setTextSize(size); t.setTextColor(contentPalette.primary);
         t.setGravity(Gravity.CENTER_VERTICAL); return t;
     }
-    private TextView button(String value, String description) {
-        TextView t = text(value, 30); t.setGravity(Gravity.CENTER);
-        t.setContentDescription(description); return t;
+    /**
+     * Chevron button drawn the same way as CalendarMonthView's month
+     * arrows (rounded surface + hand-drawn chevron), so the year tab's
+     * prev/next controls line up exactly with the month tab's.
+     */
+    private final class NavArrow extends View {
+        private final boolean next;
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        NavArrow(boolean next, String description) {
+            super(activity);
+            this.next = next;
+            setContentDescription(description);
+            setFocusable(true);
+            setClickable(true);
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float w = getWidth();
+            float h = getHeight();
+            RectF bounds = new RectF(0f, 0f, w, h);
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(contentPalette.surface);
+            canvas.drawRoundRect(bounds, dp(15), dp(15), paint);
+
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(dp(1.8f));
+            paint.setStrokeCap(Paint.Cap.ROUND);
+            paint.setColor(contentPalette.primary);
+            float cx = w / 2f;
+            float cy = h / 2f;
+            float f = next ? 1.0f : -1.0f;
+            canvas.drawLine(cx - dp(3) * f, cy - dp(5), cx + dp(3) * f, cy, paint);
+            canvas.drawLine(cx + dp(3) * f, cy, cx - dp(3) * f, cy + dp(5), paint);
+        }
     }
+
     public void showYear(boolean visible) {
         showingYear = visible;
         yearPage.setVisibility(visible ? VISIBLE : GONE);
