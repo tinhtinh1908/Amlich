@@ -1,4 +1,4 @@
-package com.dtinh.lichviet;
+ipackage com.dtinh.lichviet;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -73,7 +73,10 @@ public final class MainActivity extends ThemedActivity {
         if (calendarMonthView != null) {
             calendarMonthView.refreshTheme();
             calendarMonthView.refreshToday();
-            if (tabs != null) tabs.refreshToday();
+            if (tabs != null) {
+                tabs.refreshTheme();   // <-- THÊM: reload ảnh nền + màu nav/trang năm
+                tabs.refreshToday();
+            }
             UiKit.applySystemBars(this, new UiKit.Palette(this),
                     BackgroundImageManager.hasBackground(this));
         }
