@@ -40,6 +40,7 @@ public final class CalendarTabsView extends FrameLayout {
     private final NavArrow nextButton;
     private final NavButton pickerButton, modeButton, todayButton, settingsButton;
     private int year;
+    private int yearColumns;
     private boolean showingYear;
 
     public CalendarTabsView(Activity activity, CalendarMonthView month, Bundle state) {
@@ -95,7 +96,10 @@ public final class CalendarTabsView extends FrameLayout {
             }
         });
         todayButton = new NavButton("Hôm nay", 2);
-        todayButton.setOnClickListener(v -> month.selectToday());
+        todayButton.setOnClickListener(v -> {
+            month.selectToday();
+            if (showingYear) showYear(false);
+        });
         settingsButton = new NavButton("Cài đặt", 4);
         settingsButton.setOnClickListener(v -> activity.startActivity(new Intent(activity, SettingsActivity.class)));
         for (NavButton item : new NavButton[]{pickerButton, modeButton, todayButton, settingsButton}) {
@@ -198,7 +202,7 @@ public final class CalendarTabsView extends FrameLayout {
         month.setVisibility(visible ? GONE : VISIBLE);
         pickerButton.setDestination(visible ? "Chọn năm" : "Chọn ngày", visible ? 1 : 0);
         modeButton.setDestination(visible ? "Tháng" : "Năm", visible ? 3 : 1);
-        todayButton.setVisibility(visible ? GONE : VISIBLE);
+        todayButton.setVisibility(VISIBLE);
     }
     public void saveState(Bundle out) {
         out.putInt("overview_year", year);
@@ -210,7 +214,11 @@ public final class CalendarTabsView extends FrameLayout {
         for (int j = 0; j < row.getChildCount(); j++) row.getChildAt(j).invalidate();
     } }
     private void changeYear(int delta) {
-        year = Math.max(1900, Math.min(2100, year + delta)); rebuild(); scroll.scrollTo(0, 0);
+        int nextYear = Math.max(1900, Math.min(2100, year + delta));
+        if (nextYear == year) return;
+        year = nextYear;
+        rebuild();
+        scroll.scrollTo(0, 0);
     }
     private void chooseYear() {
         new WheelDatePickerDialog(activity, year, selectedYear -> {
@@ -221,12 +229,14 @@ public final class CalendarTabsView extends FrameLayout {
     }
 
     private void rebuild() {
-        title.setText("Năm " + year); months.removeAllViews();
-        for (int r = 0; r < 4; r++) {
+        title.setText("Năm " + year);
+        months.removeAllViews();
+        int columns = yearColumns == 0 ? 3 : yearColumns;
+        for (int r = 0; r < (12 + columns - 1) / columns; r++) {
             LinearLayout row = new LinearLayout(activity);
             months.addView(row, new LinearLayout.LayoutParams(-1, -2));
-            for (int c = 0; c < 3; c++) {
-                final int m = r * 3 + c;
+            for (int c = 0; c < columns && r * columns + c < 12; c++) {
+                final int m = r * columns + c;
                 MiniMonth mini = new MiniMonth(m);
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, dp(196), 1);
                 lp.setMargins(dp(3), dp(4), dp(3), dp(8));
@@ -259,6 +269,16 @@ public final class CalendarTabsView extends FrameLayout {
         protected void onSizeChanged(int width, int height, int oldWidth, int oldHeight) {
             super.onSizeChanged(width, height, oldWidth, oldHeight);
             if (width != oldWidth || height != oldHeight) reload(width, height);
+            if (width != oldWidth && width > 0) {
+                // Keep the small month calendars legible on narrow phones and
+                // use the extra room in landscape/tablet layouts.
+                int availableDp = Math.round(width / getResources().getDisplayMetrics().density);
+                int columns = availableDp < 400 ? 2 : availableDp < 720 ? 3 : 4;
+                if (columns != yearColumns) {
+                    yearColumns = columns;
+                    rebuild();
+                }
+            }
         }
 
         void refreshBackground() {
@@ -316,6 +336,8 @@ public final class CalendarTabsView extends FrameLayout {
             addView(icon, new LinearLayout.LayoutParams(dp(23), dp(23)));
             label = text(name, 11);
             label.setGravity(Gravity.CENTER); label.setSingleLine(true);
+            label.setAutoSizeTextTypeUniformWithConfiguration(9, 11, 1,
+                    android.util.TypedValue.COMPLEX_UNIT_SP);
             label.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
             LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(-1, dp(18));
             textParams.topMargin = dp(3); addView(label, textParams);
