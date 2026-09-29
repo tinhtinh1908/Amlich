@@ -37,7 +37,7 @@ def check_notes():
                  and n.get('clickable') == 'true')
     x1, y1, x2, y2 = map(int, re.findall(r'\d+', today.get('bounds')))
     density = int(re.search(r'\d+', adb('shell', 'wm', 'density')).group()) / 160
-    adb('shell', 'input', 'tap', str((x1+x2)//2), str(int(y1 - 60*density)))
+    adb('shell', 'input', 'tap', str((x1+x2)//2), str(int(y1 - 95*density)))
     time.sleep(1)
     texts = {n.get('text') for n in hierarchy().iter('node')}
     assert 'Ghi chú ngày' in texts, 'Note editor cannot be opened from the date detail'
