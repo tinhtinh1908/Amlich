@@ -14,7 +14,7 @@ def assert_navigation(year):
     labels = {'Chọn ngày', 'Chọn năm', 'Năm', 'Tháng', 'Hôm nay', 'Cài đặt'}
     actual = [n.get('content-desc') for n in hierarchy().iter('node')
               if n.get('clickable') == 'true' and n.get('content-desc') in labels]
-    expected = ['Chọn năm', 'Tháng', 'Cài đặt'] if year else ['Chọn ngày', 'Năm', 'Hôm nay', 'Cài đặt']
+    expected = ['Chọn năm', 'Tháng', 'Hôm nay', 'Cài đặt'] if year else ['Chọn ngày', 'Năm', 'Hôm nay', 'Cài đặt']
     assert actual == expected, (actual, expected)
 def tap(label):
     root = hierarchy()
@@ -30,6 +30,8 @@ adb('shell', 'am', 'start', '-W', '-n', 'com.dtinh.lichviet/.MainActivity')
 time.sleep(3)
 assert_navigation(False); capture('01-month-dark')
 tap('Năm'); assert_navigation(True); capture('02-year-dark')
+tap('Hôm nay'); assert_navigation(False); capture('02a-today-from-year')
+tap('Năm'); assert_navigation(True)
 tap('Chọn năm'); capture('03-year-picker'); adb('shell', 'input', 'keyevent', '4')
 tap('Tháng'); assert_navigation(False); capture('04-month-return')
 tap('Hôm nay'); capture('05-month-today')
