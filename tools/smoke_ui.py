@@ -12,10 +12,16 @@ def hierarchy():
     return ET.parse(out / 'ui.xml').getroot()
 def assert_navigation(year):
     labels = {'Chọn ngày', 'Chọn năm', 'Năm', 'Tháng', 'Hôm nay', 'Cài đặt'}
-    actual = [n.get('content-desc') for n in hierarchy().iter('node')
+    root = hierarchy()
+    actual = [n.get('content-desc') for n in root.iter('node')
               if n.get('clickable') == 'true' and n.get('content-desc') in labels]
     expected = ['Chọn năm', 'Tháng', 'Hôm nay', 'Cài đặt'] if year else ['Chọn ngày', 'Năm', 'Hôm nay', 'Cài đặt']
     assert actual == expected, (actual, expected)
+    if year:
+        visible_months = [n for n in root.iter('node')
+                          if (n.get('content-desc') or '').startswith('Tháng ')
+                          and 'Chạm để xem chi tiết' in n.get('content-desc', '')]
+        assert len(visible_months) >= 6, 'Year grid is missing: ' + str(len(visible_months))
 def tap(label):
     root = hierarchy()
     for node in root.iter('node'):
