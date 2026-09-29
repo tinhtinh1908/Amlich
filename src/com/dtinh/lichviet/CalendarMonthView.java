@@ -278,11 +278,10 @@ public final class CalendarMonthView extends View {
         this.gridTop = headerHeight + dp(29.0f);
         Calendar calendar = (Calendar) this.displayed.clone();
         this.visibleRows = Math.max(5, Math.min(6, ((((calendar.get(7) + 5) % 7) + calendar.getActualMaximum(5)) + 6) / 7));
-        // Reserve enough room for the date detail on short screens. Rows can
-        // become compact, and drawDays adapts its text positions accordingly.
-        float availableRowHeight = (contentBottom - this.gridTop - dp(164.0f)) / this.visibleRows;
-        this.rowHeight = Math.max(dp(36.0f), availableRowHeight);
-        this.gridBottom = this.gridTop + (this.rowHeight * this.visibleRows);
+        float availableRowHeight = ((contentBottom - this.gridTop) - dp(232.0f)) / this.visibleRows;
+        float fMax = Math.max(dp(46.0f), availableRowHeight);
+        this.rowHeight = fMax;
+        this.gridBottom = this.gridTop + (fMax * this.visibleRows);
         float detailBottom = contentBottom - dp(10.0f);
         this.detailPanel.set(dp(12.0f),
                 Math.max(this.gridBottom + dp(10.0f), detailBottom - dp(214.0f)),
@@ -363,11 +362,9 @@ public final class CalendarMonthView extends View {
             boolean zSameDate = sameDate(calendar2, this.today);
             boolean zSameDate2 = sameDate(calendar2, calendar);
             float fCenterX = next.bounds.centerX();
-            boolean compact = this.rowHeight < dp(50.0f);
             float contentOffset = Math.max(0, (this.rowHeight - dp(50.0f)) / 2);
-            float fM0dp = next.bounds.top + (compact ? this.rowHeight * .38f : contentOffset + dp(19.0f));
-            float fM0dp2 = Math.min(this.rowHeight * .43f,
-                    dp((zSameDate2 ? (float) Math.sin(this.selectionPulse * Math.PI) * 2.2f : 0.0f) + 18.0f));
+            float fM0dp = next.bounds.top + contentOffset + dp(19.0f);
+            float fM0dp2 = dp((zSameDate2 ? ((float) Math.sin(((double) this.selectionPulse) * 3.141592653589793d)) * 2.2f : 0.0f) + 18.0f);
             if (zSameDate) {
                 it = it2;
                 this.paint.setStyle(Paint.Style.FILL);
@@ -392,7 +389,7 @@ public final class CalendarMonthView extends View {
             } else {
                 i = calendar2.get(7) == 1 ? this.sunday : this.textPrimary;
             }
-            setText(dp(compact ? 16.0f : 18.0f), i, 1, Paint.Align.CENTER);
+            setText(dp(18.0f), i, 1, Paint.Align.CENTER);
             canvas.drawText(Integer.toString(i3), fCenterX,
                     baselineCenter(fM0dp - dp(18.0f), dp(36.0f)), this.paint);
             if (!next.inDisplayedMonth) {
@@ -402,12 +399,11 @@ public final class CalendarMonthView extends View {
             } else {
                 i2 = zSameDate ? this.accent : this.textSecondary;
             }
-            setText(dp(compact ? 8.5f : 9.8f), i2, !holiday.isEmpty() ? 1 : 0, Paint.Align.CENTER);
+            setText(dp(9.8f), i2, !holiday.isEmpty() ? 1 : 0, Paint.Align.CENTER);
             canvas.drawText(
                     fitText(HolidayUtil.getShortLabel(i3, i4, lunarDateFromSolar),
                             this.cellWidth - dp(5.0f)),
-                    fCenterX, compact ? next.bounds.bottom - dp(3.0f)
-                            : next.bounds.top + contentOffset + dp(45.0f), this.paint);
+                    fCenterX, next.bounds.top + contentOffset + dp(45.0f), this.paint);
             if (!holiday.isEmpty() && next.inDisplayedMonth) {
                 this.paint.setColor(zSameDate ? -1 : this.sunday);
                 canvas.drawCircle(dp(15.0f) + fCenterX, fM0dp - dp(13.0f), dp(2.0f), this.paint);
