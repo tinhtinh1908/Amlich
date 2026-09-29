@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.view.MotionEvent;
 import android.view.View;
 import java.text.SimpleDateFormat;
@@ -34,7 +35,6 @@ public final class CalendarMonthView extends View {
     private int background;
     private Bitmap backgroundImage;
     private boolean customBackground;
-    private boolean customBackgroundDark;
     private int controlDivider;
     private int controlPrimary;
     private int controlSecondary;
@@ -57,6 +57,8 @@ public final class CalendarMonthView extends View {
     private Set<String> noteKeys;
     private final Paint paint;
     private final RectF previousMonthButton;
+    private final Drawable previousIcon;
+    private final Drawable nextIcon;
     private float rowHeight;
     private final Calendar selected;
     private ValueAnimator selectionAnimator;
@@ -89,6 +91,8 @@ public final class CalendarMonthView extends View {
         this.noteKeys = NoteRepository.snapshotKeys(context);
         this.previousMonthButton = new RectF();
         this.nextMonthButton = new RectF();
+        this.previousIcon = context.getDrawable(R.drawable.ic_chevron_left).mutate();
+        this.nextIcon = context.getDrawable(R.drawable.ic_chevron_right).mutate();
         this.detailPanel = new RectF();
         this.noteHitArea = new RectF();
         this.density = getResources().getDisplayMetrics().density;
@@ -118,48 +122,29 @@ public final class CalendarMonthView extends View {
         this.accentSoft = palette.accentSoft;
         this.sunday = palette.danger;
         this.customBackground = BackgroundImageManager.hasBackground(getContext());
-        // The photo and calendar labels use their own high-contrast palette.
-        // Cards and controls still follow the selected light/dark app theme.
-        this.customBackgroundDark = palette.night;
         if (this.customBackground) {
-            boolean frosted = BackgroundImageManager.isFrostedEnabled(getContext());
-            if (this.customBackgroundDark) {
-                this.background = frosted
-                        ? Color.argb(132, 13, 16, 21) : Color.rgb(13, 16, 21);
-                this.surface = frosted
-                        ? Color.argb(158, 27, 31, 39) : Color.argb(232, 27, 31, 39);
-                this.surfaceSoft = frosted
-                        ? Color.argb(138, 37, 43, 54) : Color.argb(224, 37, 43, 54);
-                this.divider = Color.argb(72, 255, 255, 255);
-                this.textPrimary = Color.WHITE;
-                this.textSecondary = Color.rgb(210, 218, 230);
-                this.textMuted = Color.rgb(116, 128, 145);
-                this.controlPrimary = this.textPrimary;
-                this.controlSecondary = this.textSecondary;
-                this.controlDivider = this.divider;
-                this.accent = frosted
-                        ? Color.argb(210, 99, 158, 247) : Color.rgb(99, 158, 247);
-                this.accentSoft = frosted
-                        ? Color.argb(150, 48, 70, 104) : Color.rgb(48, 70, 104);
-                this.sunday = Color.rgb(255, 126, 135);
-            } else {
-                this.background = Color.rgb(247, 248, 252);
-                this.surface = frosted
-                        ? Color.argb(218, 255, 255, 255) : Color.rgb(255, 255, 255);
-                this.surfaceSoft = frosted
-                        ? Color.argb(205, 239, 242, 247) : Color.rgb(239, 242, 247);
-                this.divider = Color.argb(96, 255, 255, 255);
-                this.textPrimary = Color.WHITE;
-                this.textSecondary = Color.rgb(218, 224, 234);
-                this.textMuted = Color.rgb(142, 150, 164);
-                this.controlPrimary = Color.rgb(24, 27, 34);
+            // Share the photo palette with the year page and bottom controls.
+            UiKit.Palette photo = UiKit.photoPalette(getContext());
+            this.background = photo.background;
+            this.surface = photo.surface;
+            this.surfaceSoft = photo.surfaceSoft;
+            this.divider = photo.divider;
+            this.textPrimary = photo.primary;
+            this.textSecondary = photo.secondary;
+            this.textMuted = photo.muted;
+            this.accent = photo.accent;
+            this.accentSoft = photo.accentSoft;
+            this.sunday = photo.danger;
+            if (!photo.night) {
+                // Text on the light cards stays dark even while labels over
+                // the background photo remain white.
+                this.controlPrimary = palette.primary;
                 this.controlSecondary = Color.rgb(82, 88, 101);
                 this.controlDivider = Color.argb(78, 24, 27, 34);
-                this.accent = frosted
-                        ? Color.argb(214, 66, 133, 244) : Color.rgb(66, 133, 244);
-                this.accentSoft = frosted
-                        ? Color.argb(166, 225, 235, 252) : Color.rgb(225, 235, 252);
-                this.sunday = Color.rgb(255, 126, 135);
+            } else {
+                this.controlPrimary = photo.primary;
+                this.controlSecondary = photo.secondary;
+                this.controlDivider = photo.divider;
             }
         }
     }
@@ -316,22 +301,17 @@ public final class CalendarMonthView extends View {
     }
 
     private void drawHeaderButtons(Canvas canvas) {
-        drawCircleButton(canvas, this.previousMonthButton, false);
-        drawCircleButton(canvas, this.nextMonthButton, true);
+        drawCircleButton(canvas, this.previousMonthButton, this.previousIcon);
+        drawCircleButton(canvas, this.nextMonthButton, this.nextIcon);
     }
 
-    private void drawCircleButton(Canvas canvas, RectF rectF, boolean z) {
+    private void drawCircleButton(Canvas canvas, RectF rectF, Drawable icon) {
         drawSurface(canvas, rectF, dp(15.0f), this.surface);
-        this.paint.setStyle(Paint.Style.STROKE);
-        this.paint.setStrokeWidth(dp(1.8f));
-        this.paint.setStrokeCap(Paint.Cap.ROUND);
-        this.paint.setColor(this.controlPrimary);
-        float fCenterX = rectF.centerX();
-        float fCenterY = rectF.centerY();
-        float f = z ? 1.0f : -1.0f;
-        canvas.drawLine(fCenterX - (dp(3.0f) * f), fCenterY - dp(5.0f), fCenterX + (dp(3.0f) * f), fCenterY, this.paint);
-        canvas.drawLine(fCenterX + (dp(3.0f) * f), fCenterY, fCenterX - (f * dp(3.0f)), fCenterY + dp(5.0f), this.paint);
-        this.paint.setStyle(Paint.Style.FILL);
+        icon.setTint(this.controlPrimary);
+        int inset = Math.round(dp(8.0f));
+        icon.setBounds(Math.round(rectF.left) + inset, Math.round(rectF.top) + inset,
+                Math.round(rectF.right) - inset, Math.round(rectF.bottom) - inset);
+        icon.draw(canvas);
     }
 
     private void drawWeekdays(Canvas canvas) {

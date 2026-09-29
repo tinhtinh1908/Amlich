@@ -112,11 +112,16 @@ public final class LauncherIconController {
 
         // Keep the midnight refresh working without crashing app startup when exact
         // alarm access is unavailable. A short inexact window is sufficient for an icon.
-        alarmManager.setWindow(
-                AlarmManager.RTC,
-                triggerAtMillis,
-                FALLBACK_WINDOW_MILLIS,
-                broadcast);
+        try {
+            alarmManager.setWindow(
+                    AlarmManager.RTC,
+                    triggerAtMillis,
+                    FALLBACK_WINDOW_MILLIS,
+                    broadcast);
+        } catch (RuntimeException ignored) {
+            // Alarm restrictions vary across vendors; the next broadcast or
+            // app start can retry without crashing the receiver.
+        }
     }
 
 

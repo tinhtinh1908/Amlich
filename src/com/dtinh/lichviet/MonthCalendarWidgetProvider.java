@@ -20,7 +20,8 @@ public final class MonthCalendarWidgetProvider extends AppWidgetProvider {
     private static final String EXTRA_WIDGET_ID = "appWidgetId";
     private static final String PREFERENCES = "month_widget";
     private static final String OFFSET_PREFIX = "offset_";
-    private static final int MONTH_LIMIT = 1_200;
+    private static final int FIRST_YEAR = 1900;
+    private static final int LAST_YEAR = 2100;
 
     private static final int[] DAY_IDS = {
         R.id.month_day_01,
@@ -167,7 +168,7 @@ public final class MonthCalendarWidgetProvider extends AppWidgetProvider {
             offset = 0;
         }
 
-        offset = Math.max(-MONTH_LIMIT, Math.min(MONTH_LIMIT, offset));
+        offset = clampOffset(offset);
         preferences(context).edit().putInt(offsetKey(widgetId), offset).apply();
         render(context, AppWidgetManager.getInstance(context), widgetId);
     }
@@ -175,7 +176,8 @@ public final class MonthCalendarWidgetProvider extends AppWidgetProvider {
     private static void render(Context context, AppWidgetManager manager, int widgetId) {
         Calendar displayedMonth = Calendar.getInstance();
         displayedMonth.set(Calendar.DAY_OF_MONTH, 1);
-        displayedMonth.add(Calendar.MONTH, preferences(context).getInt(offsetKey(widgetId), 0));
+        displayedMonth.add(Calendar.MONTH,
+                clampOffset(preferences(context).getInt(offsetKey(widgetId), 0)));
 
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.month_calendar_widget);
         int selectedMode = ThemeManager.getMode(context);
@@ -190,9 +192,9 @@ public final class MonthCalendarWidgetProvider extends AppWidgetProvider {
         views.setInt(R.id.month_widget_prev, "setBackgroundResource", colors.headerButton);
         views.setInt(R.id.month_widget_today, "setBackgroundResource", colors.headerButton);
         views.setInt(R.id.month_widget_next, "setBackgroundResource", colors.headerButton);
-        views.setTextColor(R.id.month_widget_prev, colors.headerSecondary);
+        views.setInt(R.id.month_widget_prev, "setColorFilter", colors.headerSecondary);
         views.setTextColor(R.id.month_widget_today, colors.headerAccent);
-        views.setTextColor(R.id.month_widget_next, colors.headerSecondary);
+        views.setInt(R.id.month_widget_next, "setColorFilter", colors.headerSecondary);
         views.setInt(R.id.month_widget_divider, "setBackgroundColor", colors.muted);
         for (int index = 0; index < WEEKDAY_IDS.length; index++) {
             views.setTextColor(WEEKDAY_IDS[index],
@@ -325,6 +327,13 @@ public final class MonthCalendarWidgetProvider extends AppWidgetProvider {
 
     private static String offsetKey(int widgetId) {
         return OFFSET_PREFIX + widgetId;
+    }
+
+    private static int clampOffset(int offset) {
+        Calendar current = Calendar.getInstance();
+        int currentMonth = current.get(Calendar.YEAR) * 12 + current.get(Calendar.MONTH);
+        return Math.max(FIRST_YEAR * 12 - currentMonth,
+                Math.min(LAST_YEAR * 12 + Calendar.DECEMBER - currentMonth, offset));
     }
 
 }
