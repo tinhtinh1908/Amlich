@@ -34,7 +34,6 @@ public final class CalendarMonthView extends View {
     private int background;
     private Bitmap backgroundImage;
     private boolean customBackground;
-    private boolean customBackgroundDark;
     private int controlDivider;
     private int controlPrimary;
     private int controlSecondary;
@@ -118,48 +117,29 @@ public final class CalendarMonthView extends View {
         this.accentSoft = palette.accentSoft;
         this.sunday = palette.danger;
         this.customBackground = BackgroundImageManager.hasBackground(getContext());
-        // The photo and calendar labels use their own high-contrast palette.
-        // Cards and controls still follow the selected light/dark app theme.
-        this.customBackgroundDark = palette.night;
         if (this.customBackground) {
-            boolean frosted = BackgroundImageManager.isFrostedEnabled(getContext());
-            if (this.customBackgroundDark) {
-                this.background = frosted
-                        ? Color.argb(132, 13, 16, 21) : Color.rgb(13, 16, 21);
-                this.surface = frosted
-                        ? Color.argb(158, 27, 31, 39) : Color.argb(232, 27, 31, 39);
-                this.surfaceSoft = frosted
-                        ? Color.argb(138, 37, 43, 54) : Color.argb(224, 37, 43, 54);
-                this.divider = Color.argb(72, 255, 255, 255);
-                this.textPrimary = Color.WHITE;
-                this.textSecondary = Color.rgb(210, 218, 230);
-                this.textMuted = Color.rgb(116, 128, 145);
-                this.controlPrimary = this.textPrimary;
-                this.controlSecondary = this.textSecondary;
-                this.controlDivider = this.divider;
-                this.accent = frosted
-                        ? Color.argb(210, 99, 158, 247) : Color.rgb(99, 158, 247);
-                this.accentSoft = frosted
-                        ? Color.argb(150, 48, 70, 104) : Color.rgb(48, 70, 104);
-                this.sunday = Color.rgb(255, 126, 135);
-            } else {
-                this.background = Color.rgb(247, 248, 252);
-                this.surface = frosted
-                        ? Color.argb(218, 255, 255, 255) : Color.rgb(255, 255, 255);
-                this.surfaceSoft = frosted
-                        ? Color.argb(205, 239, 242, 247) : Color.rgb(239, 242, 247);
-                this.divider = Color.argb(96, 255, 255, 255);
-                this.textPrimary = Color.WHITE;
-                this.textSecondary = Color.rgb(218, 224, 234);
-                this.textMuted = Color.rgb(142, 150, 164);
-                this.controlPrimary = Color.rgb(24, 27, 34);
+            // Share the photo palette with the year page and bottom controls.
+            UiKit.Palette photo = UiKit.photoPalette(getContext());
+            this.background = photo.background;
+            this.surface = photo.surface;
+            this.surfaceSoft = photo.surfaceSoft;
+            this.divider = photo.divider;
+            this.textPrimary = photo.primary;
+            this.textSecondary = photo.secondary;
+            this.textMuted = photo.muted;
+            this.accent = photo.accent;
+            this.accentSoft = photo.accentSoft;
+            this.sunday = photo.danger;
+            if (!photo.night) {
+                // Text on the light cards stays dark even while labels over
+                // the background photo remain white.
+                this.controlPrimary = palette.primary;
                 this.controlSecondary = Color.rgb(82, 88, 101);
                 this.controlDivider = Color.argb(78, 24, 27, 34);
-                this.accent = frosted
-                        ? Color.argb(214, 66, 133, 244) : Color.rgb(66, 133, 244);
-                this.accentSoft = frosted
-                        ? Color.argb(166, 225, 235, 252) : Color.rgb(225, 235, 252);
-                this.sunday = Color.rgb(255, 126, 135);
+            } else {
+                this.controlPrimary = photo.primary;
+                this.controlSecondary = photo.secondary;
+                this.controlDivider = photo.divider;
             }
         }
     }
@@ -293,10 +273,11 @@ public final class CalendarMonthView extends View {
         this.gridTop = headerHeight + dp(29.0f);
         Calendar calendar = (Calendar) this.displayed.clone();
         this.visibleRows = Math.max(5, Math.min(6, ((((calendar.get(7) + 5) % 7) + calendar.getActualMaximum(5)) + 6) / 7));
-        float availableRowHeight = ((contentBottom - this.gridTop) - dp(232.0f)) / this.visibleRows;
-        float fMax = Math.max(dp(46.0f), availableRowHeight);
-        this.rowHeight = fMax;
-        this.gridBottom = this.gridTop + (fMax * this.visibleRows);
+        // Reserve enough room for the date detail on short screens. Rows can
+        // become compact, and drawDays adapts its text positions accordingly.
+        float availableRowHeight = (contentBottom - this.gridTop - dp(164.0f)) / this.visibleRows;
+        this.rowHeight = Math.max(dp(36.0f), availableRowHeight);
+        this.gridBottom = this.gridTop + (this.rowHeight * this.visibleRows);
         float detailBottom = contentBottom - dp(10.0f);
         this.detailPanel.set(dp(12.0f),
                 Math.max(this.gridBottom + dp(10.0f), detailBottom - dp(214.0f)),
@@ -382,9 +363,11 @@ public final class CalendarMonthView extends View {
             boolean zSameDate = sameDate(calendar2, this.today);
             boolean zSameDate2 = sameDate(calendar2, calendar);
             float fCenterX = next.bounds.centerX();
+            boolean compact = this.rowHeight < dp(50.0f);
             float contentOffset = Math.max(0, (this.rowHeight - dp(50.0f)) / 2);
-            float fM0dp = next.bounds.top + contentOffset + dp(19.0f);
-            float fM0dp2 = dp((zSameDate2 ? ((float) Math.sin(((double) this.selectionPulse) * 3.141592653589793d)) * 2.2f : 0.0f) + 18.0f);
+            float fM0dp = next.bounds.top + (compact ? this.rowHeight * .38f : contentOffset + dp(19.0f));
+            float fM0dp2 = Math.min(this.rowHeight * .43f,
+                    dp((zSameDate2 ? (float) Math.sin(this.selectionPulse * Math.PI) * 2.2f : 0.0f) + 18.0f));
             if (zSameDate) {
                 it = it2;
                 this.paint.setStyle(Paint.Style.FILL);
@@ -409,7 +392,7 @@ public final class CalendarMonthView extends View {
             } else {
                 i = calendar2.get(7) == 1 ? this.sunday : this.textPrimary;
             }
-            setText(dp(18.0f), i, 1, Paint.Align.CENTER);
+            setText(dp(compact ? 16.0f : 18.0f), i, 1, Paint.Align.CENTER);
             canvas.drawText(Integer.toString(i3), fCenterX,
                     baselineCenter(fM0dp - dp(18.0f), dp(36.0f)), this.paint);
             if (!next.inDisplayedMonth) {
@@ -419,11 +402,12 @@ public final class CalendarMonthView extends View {
             } else {
                 i2 = zSameDate ? this.accent : this.textSecondary;
             }
-            setText(dp(9.8f), i2, !holiday.isEmpty() ? 1 : 0, Paint.Align.CENTER);
+            setText(dp(compact ? 8.5f : 9.8f), i2, !holiday.isEmpty() ? 1 : 0, Paint.Align.CENTER);
             canvas.drawText(
                     fitText(HolidayUtil.getShortLabel(i3, i4, lunarDateFromSolar),
                             this.cellWidth - dp(5.0f)),
-                    fCenterX, next.bounds.top + contentOffset + dp(45.0f), this.paint);
+                    fCenterX, compact ? next.bounds.bottom - dp(3.0f)
+                            : next.bounds.top + contentOffset + dp(45.0f), this.paint);
             if (!holiday.isEmpty() && next.inDisplayedMonth) {
                 this.paint.setColor(zSameDate ? -1 : this.sunday);
                 canvas.drawCircle(dp(15.0f) + fCenterX, fM0dp - dp(13.0f), dp(2.0f), this.paint);
