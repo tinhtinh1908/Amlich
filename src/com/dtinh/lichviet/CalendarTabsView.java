@@ -42,7 +42,6 @@ public final class CalendarTabsView extends FrameLayout {
     private final NavArrow nextButton;
     private final NavButton pickerButton, modeButton, todayButton, settingsButton;
     private int year;
-    private int yearColumns;
     private boolean showingYear;
 
     public CalendarTabsView(Activity activity, CalendarMonthView month, Bundle state) {
@@ -229,7 +228,9 @@ public final class CalendarTabsView extends FrameLayout {
     private void rebuild() {
         title.setText("Năm " + year);
         months.removeAllViews();
-        int columns = yearColumns == 0 ? 3 : yearColumns;
+        int width = getWidth() > 0 ? getWidth() : getResources().getDisplayMetrics().widthPixels;
+        int availableDp = Math.round(width / getResources().getDisplayMetrics().density);
+        int columns = availableDp < 400 ? 2 : availableDp < 720 ? 3 : 4;
         for (int r = 0; r < (12 + columns - 1) / columns; r++) {
             LinearLayout row = new LinearLayout(activity);
             months.addView(row, new LinearLayout.LayoutParams(-1, -2));
@@ -267,16 +268,6 @@ public final class CalendarTabsView extends FrameLayout {
         protected void onSizeChanged(int width, int height, int oldWidth, int oldHeight) {
             super.onSizeChanged(width, height, oldWidth, oldHeight);
             if (width != oldWidth || height != oldHeight) reload(width, height);
-            if (width != oldWidth && width > 0) {
-                // Keep the small month calendars legible on narrow phones and
-                // use the extra room in landscape/tablet layouts.
-                int availableDp = Math.round(width / getResources().getDisplayMetrics().density);
-                int columns = availableDp < 400 ? 2 : availableDp < 720 ? 3 : 4;
-                if (columns != yearColumns) {
-                    yearColumns = columns;
-                    rebuild();
-                }
-            }
         }
 
         void refreshBackground() {
