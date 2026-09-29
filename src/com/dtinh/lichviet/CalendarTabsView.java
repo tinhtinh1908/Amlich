@@ -97,10 +97,7 @@ public final class CalendarTabsView extends FrameLayout {
             }
         });
         todayButton = new NavButton("Hôm nay", 2);
-        todayButton.setOnClickListener(v -> {
-            month.selectToday();
-            if (showingYear) showYear(false);
-        });
+        todayButton.setOnClickListener(v -> month.selectToday());
         settingsButton = new NavButton("Cài đặt", 4);
         settingsButton.setOnClickListener(v -> activity.startActivity(new Intent(activity, SettingsActivity.class)));
         for (NavButton item : new NavButton[]{pickerButton, modeButton, todayButton, settingsButton}) {
@@ -199,7 +196,8 @@ public final class CalendarTabsView extends FrameLayout {
         month.setVisibility(visible ? GONE : VISIBLE);
         pickerButton.setDestination(visible ? "Chọn năm" : "Chọn ngày", visible ? 1 : 0);
         modeButton.setDestination(visible ? "Tháng" : "Năm", visible ? 3 : 1);
-        todayButton.setVisibility(VISIBLE);
+        todayButton.setVisibility(visible ? GONE : VISIBLE);
+        settingsButton.setVisibility(visible ? GONE : VISIBLE);
     }
     public void saveState(Bundle out) {
         out.putInt("overview_year", year);
@@ -343,19 +341,8 @@ public final class CalendarTabsView extends FrameLayout {
             applyStyle(kind);
         }
         private void applyStyle(int kind) {
-            int color;
-            if (kind == 2) {
-                // "Hôm nay" keeps its green identity in both themes.
-                color = contentPalette.night ? Color.rgb(91, 214, 159) : Color.rgb(24, 143, 94);
-            } else if (kind == 4) {
-                color = contentPalette.secondary;
-            } else {
-                color = contentPalette.accent;
-            }
-            // Strip any alpha the palette may have baked in (photoPalette's
-            // accent carries some when frosted) so all 4 buttons go through
-            // the same, single alpha decision below instead of only the
-            // accent-colored ones reacting to the setting.
+            int color = contentPalette.accent;
+            // Apply transparency uniformly when the frosted photo mode is on.
             int rgb = Color.rgb(Color.red(color), Color.green(color), Color.blue(color));
 
             int contentColor = Color.WHITE;
