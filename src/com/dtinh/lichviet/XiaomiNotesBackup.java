@@ -46,6 +46,7 @@ public final class XiaomiNotesBackup {
     });
     private static final String FORMAT_MAGIC = "LichVietNotes";
     private static final int FORMAT_VERSION = 1;
+    private static final int BASE64_FLAGS = Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING;
     private static final int ITERATIONS = 180000;
     private static final int IV_BYTES = 12;
     private static final int MAX_IMPORT_NOTES = 5000;
@@ -352,7 +353,7 @@ public final class XiaomiNotesBackup {
         StringBuilder sb = new StringBuilder();
         sb.append(FORMAT_MAGIC).append('\n').append(FORMAT_VERSION).append('\n').append(System.currentTimeMillis()).append('\n').append(map.size()).append('\n');
         for (Map.Entry<String, String> entry : map.entrySet()) {
-            sb.append(entry.getKey()).append('\t').append(Base64.encodeToString(entry.getValue().getBytes(StandardCharsets.UTF_8), 11)).append('\n');
+            sb.append(entry.getKey()).append('\t').append(Base64.encodeToString(entry.getValue().getBytes(StandardCharsets.UTF_8), BASE64_FLAGS)).append('\n');
         }
         return sb.toString().getBytes(StandardCharsets.UTF_8);
     }
@@ -362,7 +363,7 @@ public final class XiaomiNotesBackup {
             throw new IllegalArgumentException("Oversized backup");
         }
         String[] strArrSplit = new String(bArr, StandardCharsets.UTF_8).split("\\n", -1);
-        if (strArrSplit.length < 4 || !FORMAT_MAGIC.equals(strArrSplit[0]) || Integer.parseInt(strArrSplit[FORMAT_VERSION]) != FORMAT_VERSION) {
+        if (strArrSplit.length < 4 || !FORMAT_MAGIC.equals(strArrSplit[0]) || Integer.parseInt(strArrSplit[1]) != FORMAT_VERSION) {
             throw new IllegalArgumentException("Unsupported backup");
         }
         int i = Integer.parseInt(strArrSplit[3]);
@@ -370,11 +371,11 @@ public final class XiaomiNotesBackup {
             throw new IllegalArgumentException("Invalid note count");
         }
         LinkedHashMap<String, String> linkedHashMap = new LinkedHashMap<>();
-        for (int i2 = 4; i2 < strArrSplit.length && linkedHashMap.size() < i; i2 += FORMAT_VERSION) {
+        for (int i2 = 4; i2 < strArrSplit.length && linkedHashMap.size() < i; i2++) {
             int iIndexOf = strArrSplit[i2].indexOf(9);
             if (iIndexOf > 0) {
                 String strSubstring = strArrSplit[i2].substring(0, iIndexOf);
-                String str = new String(Base64.decode(strArrSplit[i2].substring(iIndexOf + FORMAT_VERSION), 11), StandardCharsets.UTF_8);
+                String str = new String(Base64.decode(strArrSplit[i2].substring(iIndexOf + 1), BASE64_FLAGS), StandardCharsets.UTF_8);
                 if (isValidKey(strSubstring) && !str.trim().isEmpty()) {
                     linkedHashMap.put(strSubstring, str);
                 }
@@ -394,15 +395,15 @@ public final class XiaomiNotesBackup {
         secureRandom.nextBytes(bArr3);
         SecretKey secretKeyDeriveKey = deriveKey(cArr, bArr2, ITERATIONS);
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        cipher.init(FORMAT_VERSION, secretKeyDeriveKey, new GCMParameterSpec(128, bArr3));
+        cipher.init(Cipher.ENCRYPT_MODE, secretKeyDeriveKey, new GCMParameterSpec(128, bArr3));
         byte[] bArrDoFinal = cipher.doFinal(bArr);
         ByteBuffer byteBufferAllocate = ByteBuffer.allocate(bArrDoFinal.length + 33);
         byteBufferAllocate.put((byte) 1).putInt(ITERATIONS).put(bArr2).put(bArr3).put(bArrDoFinal);
-        return Base64.encodeToString(byteBufferAllocate.array(), 11);
+        return Base64.encodeToString(byteBufferAllocate.array(), BASE64_FLAGS);
     }
 
     private static byte[] decrypt(String str, char[] cArr) throws Exception {
-        byte[] bArrDecode = Base64.decode(str, 11);
+        byte[] bArrDecode = Base64.decode(str, BASE64_FLAGS);
         if (bArrDecode.length < 49) {
             throw new IllegalArgumentException("Short backup");
         }
@@ -422,7 +423,7 @@ public final class XiaomiNotesBackup {
         byteBufferWrap.get(bArr3);
         SecretKey secretKeyDeriveKey = deriveKey(cArr, bArr, i);
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        cipher.init(2, secretKeyDeriveKey, new GCMParameterSpec(128, bArr2));
+        cipher.init(Cipher.DECRYPT_MODE, secretKeyDeriveKey, new GCMParameterSpec(128, bArr2));
         return cipher.doFinal(bArr3);
     }
 
@@ -447,7 +448,7 @@ public final class XiaomiNotesBackup {
             if (!((cCharAt >= 'A' && cCharAt <= 'Z') || (cCharAt >= 'a' && cCharAt <= 'z') || ((cCharAt >= '0' && cCharAt <= '9') || cCharAt == '_' || cCharAt == '-'))) {
                 break;
             }
-            i += FORMAT_VERSION;
+            i++;
         }
         if (i == length) {
             throw new IllegalArgumentException("Empty payload");
@@ -459,7 +460,7 @@ public final class XiaomiNotesBackup {
         if (str == null || str.length() != 13 || !str.startsWith("note_")) {
             return false;
         }
-        for (int i = 5; i < str.length(); i += FORMAT_VERSION) {
+        for (int i = 5; i < str.length(); i++) {
             if (!Character.isDigit(str.charAt(i))) {
                 return false;
             }
@@ -471,7 +472,7 @@ public final class XiaomiNotesBackup {
         if (cArr == null) {
             return;
         }
-        for (int i = 0; i < cArr.length; i += FORMAT_VERSION) {
+        for (int i = 0; i < cArr.length; i++) {
             cArr[i] = 0;
         }
     }

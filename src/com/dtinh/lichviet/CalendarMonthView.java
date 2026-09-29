@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.view.MotionEvent;
 import android.view.View;
 import java.text.SimpleDateFormat;
@@ -56,6 +57,8 @@ public final class CalendarMonthView extends View {
     private Set<String> noteKeys;
     private final Paint paint;
     private final RectF previousMonthButton;
+    private final Drawable previousIcon;
+    private final Drawable nextIcon;
     private float rowHeight;
     private final Calendar selected;
     private ValueAnimator selectionAnimator;
@@ -88,6 +91,8 @@ public final class CalendarMonthView extends View {
         this.noteKeys = NoteRepository.snapshotKeys(context);
         this.previousMonthButton = new RectF();
         this.nextMonthButton = new RectF();
+        this.previousIcon = context.getDrawable(R.drawable.ic_chevron_left).mutate();
+        this.nextIcon = context.getDrawable(R.drawable.ic_chevron_right).mutate();
         this.detailPanel = new RectF();
         this.noteHitArea = new RectF();
         this.density = getResources().getDisplayMetrics().density;
@@ -297,22 +302,17 @@ public final class CalendarMonthView extends View {
     }
 
     private void drawHeaderButtons(Canvas canvas) {
-        drawCircleButton(canvas, this.previousMonthButton, false);
-        drawCircleButton(canvas, this.nextMonthButton, true);
+        drawCircleButton(canvas, this.previousMonthButton, this.previousIcon);
+        drawCircleButton(canvas, this.nextMonthButton, this.nextIcon);
     }
 
-    private void drawCircleButton(Canvas canvas, RectF rectF, boolean z) {
+    private void drawCircleButton(Canvas canvas, RectF rectF, Drawable icon) {
         drawSurface(canvas, rectF, dp(15.0f), this.surface);
-        this.paint.setStyle(Paint.Style.STROKE);
-        this.paint.setStrokeWidth(dp(1.8f));
-        this.paint.setStrokeCap(Paint.Cap.ROUND);
-        this.paint.setColor(this.controlPrimary);
-        float fCenterX = rectF.centerX();
-        float fCenterY = rectF.centerY();
-        float f = z ? 1.0f : -1.0f;
-        canvas.drawLine(fCenterX - (dp(3.0f) * f), fCenterY - dp(5.0f), fCenterX + (dp(3.0f) * f), fCenterY, this.paint);
-        canvas.drawLine(fCenterX + (dp(3.0f) * f), fCenterY, fCenterX - (f * dp(3.0f)), fCenterY + dp(5.0f), this.paint);
-        this.paint.setStyle(Paint.Style.FILL);
+        icon.setTint(this.controlPrimary);
+        int inset = Math.round(dp(8.0f));
+        icon.setBounds(Math.round(rectF.left) + inset, Math.round(rectF.top) + inset,
+                Math.round(rectF.right) - inset, Math.round(rectF.bottom) - inset);
+        icon.draw(canvas);
     }
 
     private void drawWeekdays(Canvas canvas) {

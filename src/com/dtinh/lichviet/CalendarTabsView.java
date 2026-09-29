@@ -9,11 +9,13 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowInsets;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -163,12 +165,12 @@ public final class CalendarTabsView extends FrameLayout {
      * prev/next controls line up exactly with the month tab's.
      */
     private final class NavArrow extends View {
-        private final boolean next;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Drawable icon;
 
         NavArrow(boolean next, String description) {
             super(activity);
-            this.next = next;
+            icon = activity.getDrawable(next ? R.drawable.ic_chevron_right : R.drawable.ic_chevron_left).mutate();
             setContentDescription(description);
             setFocusable(true);
             setClickable(true);
@@ -184,15 +186,11 @@ public final class CalendarTabsView extends FrameLayout {
             paint.setColor(contentPalette.surface);
             canvas.drawRoundRect(bounds, dp(15), dp(15), paint);
 
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(dp(1.8f));
-            paint.setStrokeCap(Paint.Cap.ROUND);
-            paint.setColor(contentPalette.primary);
-            float cx = w / 2f;
-            float cy = h / 2f;
-            float f = next ? 1.0f : -1.0f;
-            canvas.drawLine(cx - dp(3) * f, cy - dp(5), cx + dp(3) * f, cy, paint);
-            canvas.drawLine(cx + dp(3) * f, cy, cx - dp(3) * f, cy + dp(5), paint);
+            icon.setTint(photoBackground && !contentPalette.night
+                    ? palette.primary : contentPalette.primary);
+            int inset = dp(8);
+            icon.setBounds(inset, inset, getWidth() - inset, getHeight() - inset);
+            icon.draw(canvas);
         }
     }
 
@@ -322,17 +320,18 @@ public final class CalendarTabsView extends FrameLayout {
         }
     }
 
-    /** One mode switch; hidden actions give their space to the remaining buttons. */
+    /** Shared bottom action used by both the month and year pages. */
     private final class NavButton extends LinearLayout {
         private final TextView label;
-        private final NavIcon icon;
+        private final ImageView icon;
         private int kind;
         NavButton(String name, int kind) {
             super(activity);
             setOrientation(VERTICAL); setGravity(Gravity.CENTER);
             setClickable(true); setFocusable(true); setContentDescription(name);
             this.kind = kind;
-            icon = new NavIcon(kind);
+            icon = new ImageView(activity);
+            icon.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
             addView(icon, new LinearLayout.LayoutParams(dp(23), dp(23)));
             label = text(name, 11);
             label.setGravity(Gravity.CENTER); label.setSingleLine(true);
@@ -347,7 +346,6 @@ public final class CalendarTabsView extends FrameLayout {
             this.kind = kind;
             label.setText(name);
             setContentDescription(name);
-            icon.kind = kind;
             applyStyle(kind);
         }
         void restyle() {
@@ -371,8 +369,8 @@ public final class CalendarTabsView extends FrameLayout {
 
             int contentColor = Color.WHITE;
             label.setTextColor(contentColor);
-            icon.color = contentColor;
-            icon.invalidate();
+            icon.setImageResource(iconResource(kind));
+            icon.setColorFilter(contentColor);
 
             // Solid, opaque fill by default (same idea as the "SAO LƯU"
             // button in Cài đặt). Only when "Nền mờ" is on AND there's a
@@ -388,37 +386,13 @@ public final class CalendarTabsView extends FrameLayout {
                     UiKit.rounded(fill, dp(17)), null));
         }
     }
-    private final class NavIcon extends View {
-        private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private int kind;
-        private int color;
-        NavIcon(int kind) { super(activity); this.kind = kind;
-            setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO); }
-        @Override protected void onDraw(Canvas c) {
-            super.onDraw(c);
-            int saved = c.save(); c.scale(getWidth()/24f, getHeight()/24f);
-            p.setColor(color); p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(1.7f);
-            p.setStrokeCap(Paint.Cap.ROUND);
-            if (kind == 4) {
-                for (int y = 6; y <= 18; y += 6) c.drawLine(4, y, 20, y, p);
-            } else if (kind == 2) {
-                c.drawCircle(12, 12, 8.5f, p); c.drawLine(12, 6.5f, 12, 12, p);
-                c.drawLine(12, 12, 16, 14, p);
-            } else {
-                c.drawRoundRect(3, 4, 21, 21, 3, 3, p);
-                c.drawLine(3, 9, 21, 9, p); c.drawLine(8, 2, 8, 6, p); c.drawLine(16, 2, 16, 6, p);
-                p.setStyle(Paint.Style.FILL);
-                if (kind == 1) {
-                    for (int x = 7; x <= 17; x += 5)
-                        for (int y = 13; y <= 18; y += 5) c.drawCircle(x, y, .9f, p);
-                } else if (kind == 3) {
-                    c.drawRoundRect(6, 12, 18, 14, .6f, .6f, p);
-                    c.drawRoundRect(6, 16, 14, 18, .6f, .6f, p);
-                } else {
-                    c.drawCircle(12, 15, 2.3f, p);
-                }
-            }
-            c.restoreToCount(saved);
+    private static int iconResource(int kind) {
+        switch (kind) {
+            case 1: return R.drawable.ic_calendar_year;
+            case 2: return R.drawable.ic_calendar_today;
+            case 3: return R.drawable.ic_calendar_month;
+            case 4: return R.drawable.ic_settings;
+            default: return R.drawable.ic_calendar_day;
         }
     }
     private final class MiniMonth extends View {
@@ -427,19 +401,21 @@ public final class CalendarTabsView extends FrameLayout {
         MiniMonth(int m) { super(activity); monthIndex = m; setFocusable(true); }
         @Override protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
+            UiKit.Palette ink = photoBackground && !contentPalette.night
+                    ? palette : contentPalette;
             Calendar today = Calendar.getInstance();
             boolean current = today.get(Calendar.YEAR) == year && today.get(Calendar.MONTH) == monthIndex;
             float cell = (getWidth() - dp(8)) / 7f;
             paint.setTextAlign(Paint.Align.LEFT); paint.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
             paint.setTextSize(Math.min(dp(16), getWidth() / 6f));
-            paint.setColor(current ? contentPalette.accent : contentPalette.primary);
+            paint.setColor(current ? ink.accent : ink.primary);
             canvas.drawText("Tháng " + (monthIndex + 1), dp(8), dp(28), paint);
             paint.setTextAlign(Paint.Align.CENTER); paint.setTypeface(Typeface.DEFAULT);
             paint.setTextSize(Math.min(dp(10), cell * .7f));
             String[] weekdays = {"T2", "T3", "T4", "T5", "T6", "T7", "CN"};
-            paint.setColor(contentPalette.secondary);
+            paint.setColor(ink.secondary);
             for (int i = 0; i < 7; i++) {
-                paint.setColor(i == 6 ? contentPalette.danger : contentPalette.secondary);
+                paint.setColor(i == 6 ? ink.danger : ink.secondary);
                 canvas.drawText(weekdays[i], dp(4) + cell * (i + .5f), dp(54), paint);
             }
             Calendar date = Calendar.getInstance(); date.clear(); date.set(year, monthIndex, 1, 12, 0);
@@ -451,11 +427,11 @@ public final class CalendarTabsView extends FrameLayout {
                 float x = dp(4) + cell * (col + .5f), baseline = dp(77 + row * 21);
                 boolean isToday = current && day == today.get(Calendar.DAY_OF_MONTH);
                 if (isToday) {
-                    paint.setColor(contentPalette.accent);
+                    paint.setColor(ink.accent);
                     canvas.drawRoundRect(new RectF(x - cell * .48f, baseline - dp(14), x + cell * .48f,
                         baseline + dp(4)), dp(5), dp(5), paint);
                 }
-                paint.setColor(isToday ? Color.WHITE : col == 6 ? contentPalette.danger : contentPalette.primary);
+                paint.setColor(isToday ? Color.WHITE : col == 6 ? ink.danger : ink.primary);
                 canvas.drawText(Integer.toString(day), x, baseline, paint);
             }
         }

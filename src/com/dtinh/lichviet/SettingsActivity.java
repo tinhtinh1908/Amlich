@@ -7,6 +7,7 @@ import android.content.res.ColorStateList;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
@@ -91,7 +92,7 @@ public final class SettingsActivity extends ThemedActivity {
             frostedCard.addView(UiKit.text(this, "Nền mờ", 16,
                     colors.primary, true), new LinearLayout.LayoutParams(0, -2, 1));
             Switch frostedSwitch = new Switch(this);
-            frostedSwitch.setContentDescription("Bật hoặc tắt nền mờ của nút widget 4x4");
+            frostedSwitch.setContentDescription("Bật hoặc tắt nền mờ của giao diện lịch và widget");
             frostedSwitch.setChecked(BackgroundImageManager.isFrostedEnabled(this));
             tintSwitch(frostedSwitch, colors);
             frostedSwitch.setOnCheckedChangeListener((button, checked) ->
@@ -306,6 +307,7 @@ public final class SettingsActivity extends ThemedActivity {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final int fillColor;
         private final int iconColor;
+        private final Drawable icon = getDrawable(R.drawable.ic_chevron_left).mutate();
 
         BackButton(int fillColor, int iconColor) {
             super(SettingsActivity.this);
@@ -322,16 +324,10 @@ public final class SettingsActivity extends ThemedActivity {
             paint.setColor(fillColor);
             canvas.drawRoundRect(new RectF(0, 0, getWidth(), getHeight()),
                     15 * density, 15 * density, paint);
-            float cx = getWidth() / 2f;
-            float cy = getHeight() / 2f;
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(1.8f * density);
-            paint.setStrokeCap(Paint.Cap.ROUND);
-            paint.setColor(iconColor);
-            canvas.drawLine(cx + 3 * density, cy - 5 * density,
-                    cx - 3 * density, cy, paint);
-            canvas.drawLine(cx - 3 * density, cy,
-                    cx + 3 * density, cy + 5 * density, paint);
+            int inset = UiKit.dp(SettingsActivity.this, 8);
+            icon.setTint(iconColor);
+            icon.setBounds(inset, inset, getWidth() - inset, getHeight() - inset);
+            icon.draw(canvas);
         }
     }
 }
