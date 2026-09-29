@@ -32,7 +32,6 @@ public final class CalendarTabsView extends FrameLayout {
     private UiKit.Palette palette;
     private UiKit.Palette contentPalette;
     private boolean photoBackground;
-    private final FrameLayout content;
     private final YearPageView yearPage;
     private final LinearLayout months;
     private final ScrollView scroll;
@@ -51,7 +50,7 @@ public final class CalendarTabsView extends FrameLayout {
         reloadPalettes();
         year = Math.max(1900, Math.min(2100, state == null
                 ? Calendar.getInstance().get(Calendar.YEAR) : state.getInt("overview_year", 2026)));
-        content = new FrameLayout(activity);
+        FrameLayout content = new FrameLayout(activity);
         addView(content, new LayoutParams(-1, -1));
         content.addView(month, new FrameLayout.LayoutParams(-1, -1));
         yearPage = new YearPageView(activity);
@@ -157,7 +156,7 @@ public final class CalendarTabsView extends FrameLayout {
     }
     /**
      * Chevron button drawn the same way as CalendarMonthView's month
-     * arrows (rounded surface + hand-drawn chevron), so the year tab's
+     * arrows (rounded surface + shared icon), so the year tab's
      * prev/next controls line up exactly with the month tab's.
      */
     private final class NavArrow extends View {
@@ -204,10 +203,14 @@ public final class CalendarTabsView extends FrameLayout {
         out.putBoolean("overview_visible", showingYear);
         out.putLong("selected_date", month.getSelectedDateMillis());
     }
-    public void refreshToday() { for (int i = 0; i < months.getChildCount(); i++) {
-        LinearLayout row = (LinearLayout) months.getChildAt(i);
-        for (int j = 0; j < row.getChildCount(); j++) row.getChildAt(j).invalidate();
-    } }
+    public void refreshToday() {
+        for (int i = 0; i < months.getChildCount(); i++) {
+            LinearLayout row = (LinearLayout) months.getChildAt(i);
+            for (int j = 0; j < row.getChildCount(); j++) {
+                row.getChildAt(j).invalidate();
+            }
+        }
+    }
     private void changeYear(int delta) {
         int nextYear = Math.max(1900, Math.min(2100, year + delta));
         if (nextYear == year) return;
@@ -343,12 +346,9 @@ public final class CalendarTabsView extends FrameLayout {
         private void applyStyle(int kind) {
             int color = contentPalette.accent;
             // Apply transparency uniformly when the frosted photo mode is on.
-            int rgb = Color.rgb(Color.red(color), Color.green(color), Color.blue(color));
-
-            int contentColor = Color.WHITE;
-            label.setTextColor(contentColor);
+            label.setTextColor(Color.WHITE);
             icon.setImageResource(iconResource(kind));
-            icon.setColorFilter(contentColor);
+            icon.setColorFilter(Color.WHITE);
 
             // Solid, opaque fill by default (same idea as the "SAO LƯU"
             // button in Cài đặt). Only when "Nền mờ" is on AND there's a
@@ -357,7 +357,7 @@ public final class CalendarTabsView extends FrameLayout {
             // buttons uniformly, so the toggle actually has an effect.
             boolean frosted = photoBackground && BackgroundImageManager.isFrostedEnabled(activity);
             int fillAlpha = frosted ? 190 : 255;
-            int fill = Color.argb(fillAlpha, Color.red(rgb), Color.green(rgb), Color.blue(rgb));
+            int fill = Color.argb(fillAlpha, Color.red(color), Color.green(color), Color.blue(color));
             int ripple = Color.argb(90, 255, 255, 255);
             setBackground(new android.graphics.drawable.RippleDrawable(
                     android.content.res.ColorStateList.valueOf(ripple),
