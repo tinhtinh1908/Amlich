@@ -55,13 +55,13 @@ jobs:
       - name: Upload installable test APK
         uses: actions/upload-artifact@v4
         with:
-          name: AmLichViet-2.3.0-vc46-debug
+          name: AmLichViet-2.4-vc47-debug
           path: build/outputs/apk/debug/*.apk
           if-no-files-found: error
       - name: Upload unsigned release APK
         uses: actions/upload-artifact@v4
         with:
-          name: AmLichViet-2.3.0-vc46-release-unsigned
+          name: AmLichViet-2.4-vc47-release-unsigned
           path: build/outputs/apk/release/*.apk
           if-no-files-found: error
       - name: Upload lint report
