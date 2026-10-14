@@ -1,5 +1,6 @@
 package com.dtinh.lichviet;
 
+import android.annotation.TargetApi;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.ComponentName;
@@ -12,11 +13,10 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 
-
 public final class LauncherIconController {
     static final String ACTION_REFRESH = "com.dtinh.lichviet.action.REFRESH_LAUNCHER_DATE";
     private static final int ALARM_REQUEST_CODE = 2108;
-    private static final long FALLBACK_WINDOW_MILLIS = 15 * 60 * 1000L;
+    private static final long FALLBACK_WINDOW_MILLIS = 900000;
     private static final String BASE_COMPONENT = "LauncherBase";
     private static final String DATE_COMPONENT_PREFIX = "LauncherDate";
     private static final int LAST_DAY = 31;
@@ -26,42 +26,32 @@ public final class LauncherIconController {
 
     public static void arm(Context context) {
         try {
-            // Never switch the launcher alias while MainActivity is starting.
-            // Changing the currently launched component can make HyperOS remove
-            // the foreground task. Broadcast events perform the icon update;
-            // opening the app only guarantees that the next midnight refresh is armed.
             scheduleNextRefresh(context.getApplicationContext());
-        } catch (RuntimeException ignored) {
-            // Icon refresh must never prevent the calendar UI from opening.
+        } catch (RuntimeException e) {
         }
     }
 
     public static void refresh(Context context) {
         Context applicationContext = context.getApplicationContext();
-        String activeAlias = aliasForDay(Calendar.getInstance().get(Calendar.DAY_OF_MONTH));
+        String strAliasForDay = aliasForDay(Calendar.getInstance().get(5));
         PackageManager packageManager = applicationContext.getPackageManager();
         if (Build.VERSION.SDK_INT >= 33) {
-            Api33.apply(packageManager, applicationContext, activeAlias);
+            Api33.apply(packageManager, applicationContext, strAliasForDay);
         } else {
-            applySequentially(packageManager, applicationContext, activeAlias);
+            applySequentially(packageManager, applicationContext, strAliasForDay);
         }
         scheduleNextRefresh(applicationContext);
     }
 
-
-    private static void applySequentially(
-            PackageManager packageManager, Context context, String activeAlias) {
-        setState(packageManager, component(context, activeAlias),
-                PackageManager.COMPONENT_ENABLED_STATE_ENABLED);
+    public static void applySequentially(PackageManager packageManager, Context context, String str) {
+        setState(packageManager, component(context, str), 1);
         for (int i = 1; i <= LAST_DAY; i++) {
-            String alias = aliasForDay(i);
-            if (!activeAlias.equals(alias)) {
-                setState(packageManager, component(context, alias),
-                        PackageManager.COMPONENT_ENABLED_STATE_DISABLED);
+            String strAliasForDay = aliasForDay(i);
+            if (!str.equals(strAliasForDay)) {
+                setState(packageManager, component(context, strAliasForDay), 2);
             }
         }
-        setState(packageManager, component(context, BASE_COMPONENT),
-                PackageManager.COMPONENT_ENABLED_STATE_DISABLED);
+        setState(packageManager, component(context, BASE_COMPONENT), 2);
     }
 
     private static void setState(PackageManager packageManager, ComponentName componentName, int i) {
@@ -69,99 +59,71 @@ public final class LauncherIconController {
         if (componentEnabledSetting == i) {
             return;
         }
-        if (i == PackageManager.COMPONENT_ENABLED_STATE_DISABLED
-                && componentEnabledSetting == PackageManager.COMPONENT_ENABLED_STATE_DEFAULT
-                && !componentName.getClassName().endsWith(BASE_COMPONENT)) {
+        if (i == 2 && componentEnabledSetting == 0 && !componentName.getClassName().endsWith(BASE_COMPONENT)) {
             return;
         }
         try {
-            packageManager.setComponentEnabledSetting(
-                    componentName, i, PackageManager.DONT_KILL_APP);
-        } catch (RuntimeException ignored) {
-            // Some launchers temporarily reject alias changes; retry next app start.
+            packageManager.setComponentEnabledSetting(componentName, i, 1);
+        } catch (RuntimeException e) {
         }
     }
 
     private static void scheduleNextRefresh(Context context) {
-        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService("alarm");
         if (alarmManager == null) {
             return;
         }
         Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.DAY_OF_MONTH, 1);
-        calendar.set(Calendar.HOUR_OF_DAY, 0);
-        calendar.set(Calendar.MINUTE, 0);
-        calendar.set(Calendar.SECOND, 0);
-        calendar.set(Calendar.MILLISECOND, 0);
-        PendingIntent broadcast = PendingIntent.getBroadcast(
-                context,
-                ALARM_REQUEST_CODE,
-                new Intent(context, LauncherIconReceiver.class).setAction(ACTION_REFRESH),
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        long triggerAtMillis = calendar.getTimeInMillis();
+        calendar.add(5, 1);
+        calendar.set(11, 0);
+        calendar.set(12, 0);
+        calendar.set(13, 0);
+        calendar.set(14, 0);
+        PendingIntent broadcast = PendingIntent.getBroadcast(context, ALARM_REQUEST_CODE, new Intent(context, (Class<?>) LauncherIconReceiver.class).setAction(ACTION_REFRESH), 201326592);
+        long timeInMillis = calendar.getTimeInMillis();
         try {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S
-                    || alarmManager.canScheduleExactAlarms()) {
-                alarmManager.setExactAndAllowWhileIdle(
-                        AlarmManager.RTC_WAKEUP, triggerAtMillis, broadcast);
+            if (Build.VERSION.SDK_INT < LAST_DAY || alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setExactAndAllowWhileIdle(0, timeInMillis, broadcast);
                 return;
             }
-        } catch (SecurityException ignored) {
-            // HyperOS can revoke exact alarms independently of the manifest permission.
+        } catch (SecurityException e) {
         }
-
-        // Keep the midnight refresh working without crashing app startup when exact
-        // alarm access is unavailable. A short inexact window is sufficient for an icon.
         try {
-            alarmManager.setWindow(
-                    AlarmManager.RTC,
-                    triggerAtMillis,
-                    FALLBACK_WINDOW_MILLIS,
-                    broadcast);
-        } catch (RuntimeException ignored) {
-            // Alarm restrictions vary across vendors; the next broadcast or
-            // app start can retry without crashing the receiver.
+            alarmManager.setWindow(1, timeInMillis, FALLBACK_WINDOW_MILLIS, broadcast);
+        } catch (RuntimeException e2) {
         }
     }
-
 
     public static ComponentName component(Context context, String str) {
         return new ComponentName(context, context.getPackageName() + "." + str);
     }
 
-    private static String aliasForDay(int day) {
-        return DATE_COMPONENT_PREFIX + String.format(Locale.US, "%02d", day);
+    public static String aliasForDay(int i) {
+        return DATE_COMPONENT_PREFIX + String.format(Locale.US, "%02d", Integer.valueOf(i));
     }
 
-    @android.annotation.TargetApi(33)
+    @TargetApi(33)
     private static final class Api33 {
         private Api33() {
         }
 
-        static void apply(PackageManager packageManager, Context context, String activeAlias) {
-            ArrayList<PackageManager.ComponentEnabledSetting> settings = new ArrayList<>(32);
-            addIfNeeded(packageManager, settings,
-                    LauncherIconController.component(context, activeAlias),
-                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED, false);
+        static void apply(PackageManager packageManager, Context context, String str) {
+            ArrayList arrayList = new ArrayList(32);
+            addIfNeeded(packageManager, arrayList, LauncherIconController.component(context, str), 1, false);
             for (int i = 1; i <= LauncherIconController.LAST_DAY; i++) {
-                String alias = LauncherIconController.aliasForDay(i);
-                if (!activeAlias.equals(alias)) {
-                    addIfNeeded(packageManager, settings,
-                            LauncherIconController.component(context, alias),
-                            PackageManager.COMPONENT_ENABLED_STATE_DISABLED, false);
+                String strAliasForDay = LauncherIconController.aliasForDay(i);
+                if (!str.equals(strAliasForDay)) {
+                    addIfNeeded(packageManager, arrayList, LauncherIconController.component(context, strAliasForDay), 2, false);
                 }
             }
-            addIfNeeded(packageManager, settings,
-                    LauncherIconController.component(context, LauncherIconController.BASE_COMPONENT),
-                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED, true);
-            if (settings.isEmpty()) {
+            addIfNeeded(packageManager, arrayList, LauncherIconController.component(context, LauncherIconController.BASE_COMPONENT), 2, true);
+            if (arrayList.isEmpty()) {
                 return;
             }
             try {
-                packageManager.setComponentEnabledSettings(settings);
-            } catch (RuntimeException ignored) {
-                LauncherIconController.applySequentially(
-                        packageManager, context, activeAlias);
+                packageManager.setComponentEnabledSettings(arrayList);
+            } catch (RuntimeException e) {
+                LauncherIconController.applySequentially(packageManager, context, str);
             }
         }
 
@@ -170,16 +132,15 @@ public final class LauncherIconController {
             if (componentEnabledSetting == i) {
                 return;
             }
-            if (componentEnabledSetting == PackageManager.COMPONENT_ENABLED_STATE_DEFAULT) {
-                if (i == PackageManager.COMPONENT_ENABLED_STATE_ENABLED && z) {
+            if (componentEnabledSetting == 0) {
+                if (i == 1 && z) {
                     return;
                 }
-                if (i == PackageManager.COMPONENT_ENABLED_STATE_DISABLED && !z) {
+                if (i == 2 && !z) {
                     return;
                 }
             }
-            list.add(new PackageManager.ComponentEnabledSetting(
-                    componentName, i, PackageManager.DONT_KILL_APP));
+            list.add(new PackageManager.ComponentEnabledSetting(componentName, i, 1));
         }
     }
 }

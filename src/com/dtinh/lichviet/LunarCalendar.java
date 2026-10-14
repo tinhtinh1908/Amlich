@@ -165,11 +165,25 @@ public final class LunarCalendar {
     }
 
     private static int getSunLongitude(int i, double d) {
+        return (int) Math.floor(sunLongitude(i, d) / Math.PI * 6.0d);
+    }
+
+    private static double sunLongitude(int i, double d) {
         double d2 = ((((double) i) - 2451545.5d) - (d / 24.0d)) / 36525.0d;
         double d3 = d2 * d2;
         double d4 = (((35999.0503d * d2) + 357.5291d) - (1.559E-4d * d3)) - ((4.8E-7d * d2) * d3);
         double dSin = ((36000.76983d * d2) + 280.46645d + (3.032E-4d * d3) + (((1.9146d - (0.004817d * d2)) - (d3 * 1.4E-5d)) * Math.sin(d4 * 0.017453292519943295d)) + ((0.019993d - (d2 * 1.01E-4d)) * Math.sin(0.03490658503988659d * d4)) + (Math.sin(0.05235987755982989d * d4) * 2.9E-4d)) * 0.017453292519943295d;
-        return (int) Math.floor(((dSin - (Math.floor(dSin / 6.283185307179586d) * 6.283185307179586d)) / 3.141592653589793d) * 6.0d);
+        return dSin - Math.floor(dSin / (2.0d * Math.PI)) * 2.0d * Math.PI;
+    }
+
+    /** Solar term at 00:00 in Vietnam (UTC+7), using the calendar's solar longitude. */
+    public static String solarTerm(LunarDate date) {
+        String[] terms = {"Xuân phân", "Thanh minh", "Cốc vũ", "Lập hạ", "Tiểu mãn", "Mang chủng",
+                "Hạ chí", "Tiểu thử", "Đại thử", "Lập thu", "Xử thử", "Bạch lộ",
+                "Thu phân", "Hàn lộ", "Sương giáng", "Lập đông", "Tiểu tuyết", "Đại tuyết",
+                "Đông chí", "Tiểu hàn", "Đại hàn", "Lập xuân", "Vũ thủy", "Kinh trập"};
+        int sector = (int) Math.floor(sunLongitude(date.julianDay, VIETNAM_TIME_ZONE) / Math.PI * 12);
+        return terms[Math.floorMod(sector, 24)];
     }
 
     private static int getLunarMonth11(int i, double d) {

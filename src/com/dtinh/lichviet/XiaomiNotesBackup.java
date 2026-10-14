@@ -1,20 +1,9 @@
 package com.dtinh.lichviet;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.Typeface;
 import android.util.Base64;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.Window;
-import android.view.WindowManager;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.TextView;
 import android.widget.Toast;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -33,7 +22,6 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
-
 
 public final class XiaomiNotesBackup {
     private static final ExecutorService BACKGROUND = Executors.newSingleThreadExecutor(new ThreadFactory() {
@@ -58,40 +46,9 @@ public final class XiaomiNotesBackup {
     private XiaomiNotesBackup() {
     }
 
-    public static void showBackupDialog(final Activity activity) {
+    public static void showBackupDialog(Activity activity) {
         if (isUsable(activity)) {
-            final PasswordForm passwordForm = passwordForm(activity, true);
-            final AlertDialog alertDialogCreate = new AlertDialog.Builder(activity).setTitle(R.string.backup_dialog_title).setMessage(R.string.backup_dialog_message).setView(passwordForm.content).setNegativeButton(R.string.note_cancel, (DialogInterface.OnClickListener) null).setPositiveButton(R.string.backup_create, (DialogInterface.OnClickListener) null).create();
-            alertDialogCreate.setOnShowListener(new DialogInterface.OnShowListener() {
-                @Override
-                public final void onShow(DialogInterface dialogInterface) {
-                    XiaomiNotesBackup.lambda$showBackupDialog$1(activity, alertDialogCreate, passwordForm, dialogInterface);
-                }
-            });
-            alertDialogCreate.show();
-        }
-    }
-
-    static void lambda$showBackupDialog$1(final Activity activity, final AlertDialog alertDialog, final PasswordForm passwordForm, DialogInterface dialogInterface) {
-        styleDialog(activity, alertDialog);
-        alertDialog.getButton(-1).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public final void onClick(View view) {
-                XiaomiNotesBackup.lambda$showBackupDialog$0(passwordForm, activity, alertDialog, view);
-            }
-        });
-    }
-
-    static void lambda$showBackupDialog$0(PasswordForm passwordForm, Activity activity, AlertDialog alertDialog, View view) {
-        String string = passwordForm.password.getText().toString();
-        String string2 = passwordForm.confirm.getText().toString();
-        if (string.length() < 6) {
-            passwordForm.password.setError(activity.getString(R.string.backup_password_short));
-        } else if (!string.equals(string2)) {
-            passwordForm.confirm.setError(activity.getString(R.string.backup_password_mismatch));
-        } else {
-            alertDialog.dismiss();
-            createAndShare(activity, string.toCharArray());
+            BackupUiDialog.password(activity, true, secret -> createAndShare(activity, secret));
         }
     }
 
@@ -102,18 +59,18 @@ public final class XiaomiNotesBackup {
         try {
             CharSequence charSequenceExtra = intent.getCharSequenceExtra("android.intent.extra.TEXT");
             if (charSequenceExtra == null || charSequenceExtra.toString().indexOf(PREFIX) < 0) {
-                Toast.makeText(activity, R.string.backup_invalid_share, Toast.LENGTH_LONG).show();
+                Toast.makeText(activity, R.string.backup_invalid_share, FORMAT_VERSION).show();
                 return true;
             }
             String string = charSequenceExtra.toString();
             if (string.length() > MAX_SHARED_CHARS) {
-                Toast.makeText(activity, R.string.backup_too_large, Toast.LENGTH_LONG).show();
+                Toast.makeText(activity, R.string.backup_too_large, FORMAT_VERSION).show();
                 return true;
             }
             showRestoreDialog(activity, string, runnable);
             return true;
         } catch (RuntimeException e) {
-            Toast.makeText(activity, R.string.backup_invalid_share, Toast.LENGTH_LONG).show();
+            Toast.makeText(activity, R.string.backup_invalid_share, FORMAT_VERSION).show();
             return true;
         }
     }
@@ -122,9 +79,9 @@ public final class XiaomiNotesBackup {
         final Map<String, String> mapExportAll = NoteRepository.exportAll(activity);
         if (mapExportAll.isEmpty()) {
             wipe(cArr);
-            Toast.makeText(activity, R.string.backup_no_notes, Toast.LENGTH_LONG).show();
+            Toast.makeText(activity, R.string.backup_no_notes, FORMAT_VERSION).show();
         } else {
-            Toast.makeText(activity, R.string.backup_creating, Toast.LENGTH_SHORT).show();
+            Toast.makeText(activity, R.string.backup_creating, 0).show();
             BACKGROUND.execute(new Runnable() {
                 @Override
                 public final void run() {
@@ -151,47 +108,22 @@ public final class XiaomiNotesBackup {
             } catch (Exception e) {
                 postToast(activity, R.string.backup_create_failed);
             }
-        } finally {
             wipe(cArr);
+        } catch (Throwable th) {
+            wipe(cArr);
+            throw th;
         }
     }
 
-    private static void showRestoreDialog(final Activity activity, final String str, final Runnable runnable) {
+    private static void showRestoreDialog(Activity activity, String backup, Runnable changed) {
         if (isUsable(activity)) {
-            final PasswordForm passwordForm = passwordForm(activity, false);
-            final AlertDialog alertDialogCreate = new AlertDialog.Builder(activity).setTitle(R.string.restore_dialog_title).setMessage(R.string.restore_dialog_message).setView(passwordForm.content).setNegativeButton(R.string.note_cancel, (DialogInterface.OnClickListener) null).setPositiveButton(R.string.restore_decrypt, (DialogInterface.OnClickListener) null).create();
-            alertDialogCreate.setOnShowListener(new DialogInterface.OnShowListener() {
-                @Override
-                public final void onShow(DialogInterface dialogInterface) {
-                    XiaomiNotesBackup.lambda$showRestoreDialog$5(activity, alertDialogCreate, passwordForm, str, runnable, dialogInterface);
-                }
-            });
-            alertDialogCreate.show();
-        }
-    }
-
-    static void lambda$showRestoreDialog$5(final Activity activity, final AlertDialog alertDialog, final PasswordForm passwordForm, final String str, final Runnable runnable, DialogInterface dialogInterface) {
-        styleDialog(activity, alertDialog);
-        alertDialog.getButton(-1).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public final void onClick(View view) {
-                XiaomiNotesBackup.lambda$showRestoreDialog$4(passwordForm, activity, alertDialog, str, runnable, view);
-            }
-        });
-    }
-
-    static void lambda$showRestoreDialog$4(PasswordForm passwordForm, Activity activity, AlertDialog alertDialog, String str, Runnable runnable, View view) {
-        String string = passwordForm.password.getText().toString();
-        if (string.length() < 6) {
-            passwordForm.password.setError(activity.getString(R.string.backup_password_short));
-        } else {
-            alertDialog.dismiss();
-            decryptAndConfirm(activity, str, string.toCharArray(), runnable);
+            BackupUiDialog.password(activity, false,
+                    secret -> decryptAndConfirm(activity, backup, secret, changed));
         }
     }
 
     private static void decryptAndConfirm(final Activity activity, final String str, final char[] cArr, final Runnable runnable) {
-        Toast.makeText(activity, R.string.restore_decrypting, Toast.LENGTH_SHORT).show();
+        Toast.makeText(activity, R.string.restore_decrypting, 0).show();
         BACKGROUND.execute(new Runnable() {
             @Override
             public final void run() {
@@ -218,115 +150,13 @@ public final class XiaomiNotesBackup {
         }
     }
 
-    private static PasswordForm passwordForm(Activity activity, boolean z) {
-        EditText editTextPasswordField;
-        UiKit.Palette palette = new UiKit.Palette(activity);
-        LinearLayout linearLayout = new LinearLayout(activity);
-        linearLayout.setOrientation(LinearLayout.VERTICAL);
-        int iM4dp = dp(activity, 24.0f);
-        linearLayout.setPadding(iM4dp, dp(activity, 8.0f), iM4dp, 0);
-        linearLayout.addView(fieldLabel(activity, activity.getString(R.string.backup_password), palette));
-        EditText editTextPasswordField2 = passwordField(activity, R.string.backup_password_hint, palette);
-        linearLayout.addView(editTextPasswordField2);
-        if (!z) {
-            editTextPasswordField = null;
-        } else {
-            TextView textViewFieldLabel = fieldLabel(activity, activity.getString(R.string.backup_password_confirm), palette);
-            LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(-1, -2);
-            layoutParams.topMargin = dp(activity, 12.0f);
-            linearLayout.addView(textViewFieldLabel, layoutParams);
-            editTextPasswordField = passwordField(activity, R.string.backup_password_confirm_hint, palette);
-            linearLayout.addView(editTextPasswordField);
-        }
-        return new PasswordForm(linearLayout, editTextPasswordField2, editTextPasswordField);
-    }
-
-    private static TextView fieldLabel(Activity activity, String str, UiKit.Palette palette) {
-        TextView textViewText = UiKit.text(activity, str, 11.0f, palette.secondary, true);
-        textViewText.setPadding(dp(activity, 2.0f), 0, 0, dp(activity, 6.0f));
-        return textViewText;
-    }
-
-    private static EditText passwordField(Activity activity, int i, UiKit.Palette palette) {
-        EditText editTextField = UiKit.field(activity, palette, i, true);
-        editTextField.setSingleLine(true);
-        editTextField.setInputType(129);
-        editTextField.setSelectAllOnFocus(false);
-        return editTextField;
-    }
-
-
-    public static void showRestoreConfirmation(final Activity activity, final Map<String, String> map, final Runnable runnable) {
-        final AlertDialog alertDialogCreate = new AlertDialog.Builder(activity).setTitle(R.string.restore_confirm_title).setMessage(activity.getString(R.string.restore_confirm_message, new Object[]{Integer.valueOf(map.size())})).setNegativeButton(R.string.note_cancel, (DialogInterface.OnClickListener) null).setPositiveButton(R.string.restore_apply, new DialogInterface.OnClickListener() {
-            @Override
-            public final void onClick(DialogInterface dialogInterface, int i) {
-                XiaomiNotesBackup.lambda$showRestoreConfirmation$8(activity, map, runnable, dialogInterface, i);
-            }
-        }).create();
-        alertDialogCreate.setOnShowListener(new DialogInterface.OnShowListener() {
-            @Override
-            public final void onShow(DialogInterface dialogInterface) {
-                XiaomiNotesBackup.styleDialog(activity, alertDialogCreate);
-            }
+    public static void showRestoreConfirmation(Activity activity, Map<String, String> notes, Runnable changed) {
+        BackupUiDialog.restoreConfirmation(activity, notes.size(), () -> {
+            int imported = NoteRepository.mergeAll(activity, notes);
+            if (changed != null) changed.run();
+            Toast.makeText(activity, activity.getString(R.string.restore_success, imported), Toast.LENGTH_LONG).show();
         });
-        alertDialogCreate.show();
     }
-
-    static void lambda$showRestoreConfirmation$8(Activity activity, Map<String, String> map, Runnable runnable, DialogInterface dialogInterface, int i) {
-        int iMergeAll = NoteRepository.mergeAll(activity, map);
-        if (runnable != null) {
-            runnable.run();
-        }
-        Toast.makeText(activity, activity.getString(R.string.restore_success, new Object[]{Integer.valueOf(iMergeAll)}), Toast.LENGTH_LONG).show();
-    }
-
-
-    public static void styleDialog(Activity activity, AlertDialog alertDialog) {
-        UiKit.Palette palette = new UiKit.Palette(activity);
-        Window window = alertDialog.getWindow();
-        if (window != null) {
-            window.setBackgroundDrawable(UiKit.rounded(palette.surface, UiKit.dp(activity, 24.0f)));
-            window.addFlags(2);
-            WindowManager.LayoutParams attributes = window.getAttributes();
-            attributes.dimAmount = 0.56f;
-            window.setAttributes(attributes);
-        }
-        if (window != null) {
-            tintTextHierarchy(window.getDecorView(), palette.primary);
-        }
-        TextView textView2 = (TextView) alertDialog.findViewById(android.R.id.message);
-        if (textView2 != null) {
-            textView2.setTextColor(palette.secondary);
-            textView2.setTextSize(14.0f);
-        }
-        Button button = alertDialog.getButton(-1);
-        if (button != null) {
-            button.setTextColor(-1);
-            button.setAllCaps(false);
-            button.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-            button.setBackground(UiKit.rounded(palette.accent, dp(activity, 14.0f)));
-        }
-        Button button2 = alertDialog.getButton(-2);
-        if (button2 != null) {
-            button2.setTextColor(palette.secondary);
-            button2.setAllCaps(false);
-            button2.setBackgroundColor(0);
-        }
-    }
-
-    private static void tintTextHierarchy(View view, int textColor) {
-        if (view instanceof TextView) {
-            ((TextView) view).setTextColor(textColor);
-        }
-        if (!(view instanceof ViewGroup)) {
-            return;
-        }
-        ViewGroup group = (ViewGroup) view;
-        for (int index = 0; index < group.getChildCount(); index++) {
-            tintTextHierarchy(group.getChildAt(index), textColor);
-        }
-    }
-
 
     public static void shareToNotes(Activity activity, String str) {
         Intent intent = new Intent("android.intent.action.SEND");
@@ -341,10 +171,10 @@ public final class XiaomiNotesBackup {
             try {
                 activity.startActivity(Intent.createChooser(intent, activity.getString(R.string.backup_share_chooser)));
             } catch (RuntimeException e2) {
-                Toast.makeText(activity, R.string.backup_share_failed, Toast.LENGTH_LONG).show();
+                Toast.makeText(activity, R.string.backup_share_failed, FORMAT_VERSION).show();
             }
         } catch (RuntimeException e3) {
-            Toast.makeText(activity, R.string.backup_share_failed, Toast.LENGTH_LONG).show();
+            Toast.makeText(activity, R.string.backup_share_failed, FORMAT_VERSION).show();
         }
     }
 
@@ -369,7 +199,7 @@ public final class XiaomiNotesBackup {
         if (i < 0 || i > MAX_IMPORT_NOTES) {
             throw new IllegalArgumentException("Invalid note count");
         }
-        LinkedHashMap<String, String> linkedHashMap = new LinkedHashMap<>();
+        LinkedHashMap linkedHashMap = new LinkedHashMap();
         for (int i2 = 4; i2 < strArrSplit.length && linkedHashMap.size() < i; i2 += FORMAT_VERSION) {
             int iIndexOf = strArrSplit[i2].indexOf(9);
             if (iIndexOf > 0) {
@@ -436,17 +266,14 @@ public final class XiaomiNotesBackup {
     }
 
     private static String extractPayload(String str) {
+        char cCharAt;
         int iIndexOf = str.indexOf(PREFIX);
         if (iIndexOf < 0) {
             throw new IllegalArgumentException("Missing payload");
         }
         int length = iIndexOf + PREFIX.length();
         int i = length;
-        while (i < str.length()) {
-            char cCharAt = str.charAt(i);
-            if (!((cCharAt >= 'A' && cCharAt <= 'Z') || (cCharAt >= 'a' && cCharAt <= 'z') || ((cCharAt >= '0' && cCharAt <= '9') || cCharAt == '_' || cCharAt == '-'))) {
-                break;
-            }
+        while (i < str.length() && (((cCharAt = str.charAt(i)) >= 'A' && cCharAt <= 'Z') || ((cCharAt >= 'a' && cCharAt <= 'z') || ((cCharAt >= '0' && cCharAt <= '9') || cCharAt == '_' || cCharAt == '-')))) {
             i += FORMAT_VERSION;
         }
         if (i == length) {
@@ -498,7 +325,7 @@ public final class XiaomiNotesBackup {
         post(activity, new Runnable() {
             @Override
             public final void run() {
-                Toast.makeText(activity, i, Toast.LENGTH_LONG).show();
+                Toast.makeText(activity, i, XiaomiNotesBackup.FORMAT_VERSION).show();
             }
         });
     }
@@ -507,21 +334,4 @@ public final class XiaomiNotesBackup {
         return (activity == null || activity.isFinishing() || activity.isDestroyed()) ? false : true;
     }
 
-
-    static final class PasswordForm {
-        final EditText confirm;
-        final LinearLayout content;
-        final EditText password;
-
-        PasswordForm(LinearLayout linearLayout, EditText editText, EditText editText2) {
-            this.content = linearLayout;
-            this.password = editText;
-            this.confirm = editText2;
-        }
-    }
-
-
-    private static int dp(Activity activity, float f) {
-        return Math.round(f * activity.getResources().getDisplayMetrics().density);
-    }
 }

@@ -22,11 +22,8 @@ jobs:
           test -d "$ANDROID_HOME/platforms/android-34"
           test -x "$ANDROID_HOME/build-tools/34.0.0/aapt2"
       - uses: gradle/actions/setup-gradle@v4
-      - name: Test lunar calendar and holidays
-        run: |
-          mkdir -p build/calendar-tests
-          javac -encoding UTF-8 -d build/calendar-tests src/com/dtinh/lichviet/LunarCalendar.java src/com/dtinh/lichviet/HolidayUtil.java tests/LunarCalendarTest.java
-          java -cp build/calendar-tests LunarCalendarTest
+      - name: Run native calendar and animation regression checks
+        run: python3 tools/run_tests.py
       - name: Build debug and release APKs, then run Android lint
         run: bash gradlew --no-daemon assembleDebug assembleRelease lintDebug
       - name: Enable hardware acceleration
@@ -55,13 +52,13 @@ jobs:
       - name: Upload installable test APK
         uses: actions/upload-artifact@v4
         with:
-          name: AmLichViet-2.4-vc47-debug
+          name: AmLichViet-2.5-vc48-debug
           path: build/outputs/apk/debug/*.apk
           if-no-files-found: error
       - name: Upload unsigned release APK
         uses: actions/upload-artifact@v4
         with:
-          name: AmLichViet-2.4-vc47-release-unsigned
+          name: AmLichViet-2.5-vc48-release-unsigned
           path: build/outputs/apk/release/*.apk
           if-no-files-found: error
       - name: Upload lint report

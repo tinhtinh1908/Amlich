@@ -11,10 +11,14 @@ import java.util.TreeMap;
 
 
 public final class NoteRepository {
-    private static final int MAX_LENGTH = 240;
+    static final int MAX_LENGTH = 240;
     private static final String PREFS = "calendar_notes_v1";
 
     private NoteRepository() {
+    }
+
+    static long revision(Context context) {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong("revision", 0);
     }
 
     public static String get(Context context, Calendar calendar) {
@@ -43,8 +47,9 @@ public final class NoteRepository {
         return keys;
     }
 
-    public static void put(Context context, Calendar calendar, String value) {
+    public static synchronized void put(Context context, Calendar calendar, String value) {
         String note = sanitize(value);
+        if (note.equals(get(context, calendar))) return;
         SharedPreferences.Editor editor = context
                 .getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit();
         if (note.isEmpty()) {
@@ -52,7 +57,7 @@ public final class NoteRepository {
         } else {
             editor.putString(key(calendar), note);
         }
-        editor.apply();
+        editor.putLong("revision", revision(context) + 1).apply();
         ThemeManager.refreshWidgets(context.getApplicationContext());
     }
 
@@ -72,7 +77,7 @@ public final class NoteRepository {
         return notes;
     }
 
-    public static int mergeAll(Context context, Map<String, String> map) {
+    public static synchronized int mergeAll(Context context, Map<String, String> map) {
         SharedPreferences.Editor editor = context
                 .getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit();
         int mergedCount = 0;
@@ -86,7 +91,7 @@ public final class NoteRepository {
             }
         }
         if (mergedCount > 0) {
-            editor.apply();
+            editor.putLong("revision", revision(context) + 1).apply();
             ThemeManager.refreshWidgets(context.getApplicationContext());
         }
         return mergedCount;

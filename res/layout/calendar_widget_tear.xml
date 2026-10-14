@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/widget_background">
+    <ImageView android:id="@+id/widget_surface" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitXY" android:contentDescription="@null" />
+    <LinearLayout android:orientation="vertical" android:padding="8dp" android:layout_width="match_parent" android:layout_height="match_parent">
+        <TextView android:id="@+id/widget_month_year" android:layout_width="match_parent" android:layout_height="18dp" android:gravity="center" android:includeFontPadding="false" android:textSize="9sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" />
+        <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:gravity="center">
+            <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="3">
+                <TextView android:id="@+id/widget_day" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:gravity="center" android:fontFamily="sans-serif-condensed" android:textStyle="bold" android:includeFontPadding="false" android:textSize="54sp" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="12sp" android:autoSizeMaxTextSize="72sp" android:autoSizeStepGranularity="1sp" android:maxLines="1" />
+                <TextView android:id="@+id/widget_weekday" android:layout_width="match_parent" android:layout_height="12dp" android:gravity="center" android:includeFontPadding="false" android:textSize="9sp" android:textStyle="bold" android:maxLines="1" />
+            </LinearLayout>
+            <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="2" android:gravity="center">
+                <TextView android:id="@+id/widget_lunar_label" android:text="ÂM LỊCH" android:layout_width="match_parent" android:layout_height="11dp" android:gravity="center" android:includeFontPadding="false" android:textSize="7sp" android:maxLines="1" />
+                <TextView android:id="@+id/widget_lunar" android:layout_width="match_parent" android:layout_height="22dp" android:gravity="center" android:includeFontPadding="false" android:textSize="18sp" android:textStyle="bold" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="20sp" android:autoSizeStepGranularity="1sp" android:maxLines="1" />
+            </LinearLayout>
+        </LinearLayout>
+        <TextView android:id="@+id/widget_day_cycle" android:layout_width="match_parent" android:layout_height="13dp" android:gravity="center" android:includeFontPadding="false" android:textSize="8sp" android:maxLines="1" android:ellipsize="end" />
+        <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="24dp">
+            <TextView android:id="@+id/widget_guardian" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:includeFontPadding="false" android:textSize="8sp" android:maxLines="2" android:ellipsize="end" />
+            <TextView android:id="@+id/widget_term" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:includeFontPadding="false" android:textSize="8sp" android:maxLines="2" android:ellipsize="end" />
+        </LinearLayout>
+        <TextView android:id="@+id/widget_holiday" android:layout_width="match_parent" android:layout_height="12dp" android:gravity="center" android:includeFontPadding="false" android:textSize="8sp" android:maxLines="1" android:ellipsize="end" />
+    </LinearLayout>
+</FrameLayout>

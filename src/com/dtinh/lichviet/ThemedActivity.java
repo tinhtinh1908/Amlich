@@ -1,19 +1,23 @@
 package com.dtinh.lichviet;
 
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
 
-/** Applies the selected theme before Android or an OEM reads Activity resources. */
 abstract class ThemedActivity extends Activity {
-    @Override
-    protected final void attachBaseContext(Context base) {
-        super.attachBaseContext(ThemeManager.wrapActivityContext(base));
+    ThemedActivity() {
     }
 
     @Override
-    protected void onCreate(Bundle state) {
+    protected final void attachBaseContext(Context context) {
+        super.attachBaseContext(ThemeManager.wrapActivityContext(context));
+    }
+
+    @Override
+    protected void onCreate(Bundle bundle) {
         ThemeManager.applyActivityTheme(this);
-        super.onCreate(state);
+        super.onCreate(bundle);
+        getWindow().setWindowAnimations(ValueAnimator.areAnimatorsEnabled() ? R.style.MiuixActivityAnimation : 0);
     }
 }

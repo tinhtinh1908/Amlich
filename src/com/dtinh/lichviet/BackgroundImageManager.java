@@ -29,6 +29,10 @@ final class BackgroundImageManager {
 
     private BackgroundImageManager() {}
 
+    static long revision(Context context) {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong("revision", 0);
+    }
+
     static boolean hasBackground(Context context) {
         return !uriValue(context).isEmpty();
     }
@@ -40,8 +44,8 @@ final class BackgroundImageManager {
 
     static void setFrostedEnabled(Context context, boolean enabled) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .edit().putBoolean(KEY_FROSTED, enabled).apply();
-        ThemeManager.refreshMonthWidget(context);
+                .edit().putBoolean(KEY_FROSTED, enabled).putLong("revision", revision(context) + 1).apply();
+        ThemeManager.refreshWidgets(context);
     }
 
     static boolean setBackground(Context context, Uri uri, int intentFlags) {
@@ -61,8 +65,8 @@ final class BackgroundImageManager {
             // the persistable flag. The URI is still stored and validated below.
         }
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .edit().putString(KEY_URI, uri.toString()).apply();
-        ThemeManager.refreshMonthWidget(context);
+                .edit().putString(KEY_URI, uri.toString()).putLong("revision", revision(context) + 1).apply();
+        ThemeManager.refreshWidgets(context);
         return true;
     }
 
@@ -76,8 +80,8 @@ final class BackgroundImageManager {
             }
         }
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .edit().remove(KEY_URI).apply();
-        ThemeManager.refreshMonthWidget(context);
+                .edit().remove(KEY_URI).putLong("revision", revision(context) + 1).apply();
+        ThemeManager.refreshWidgets(context);
     }
 
     static Bitmap load(Context context, int targetWidth, int targetHeight) {
@@ -136,8 +140,21 @@ final class BackgroundImageManager {
                 AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, 320));
         int heightDp = Math.max(80, options.getInt(
                 AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 220));
-        int width = Math.min(720, UiKit.dp(context, widthDp));
-        int height = Math.min(720, UiKit.dp(context, heightDp));
+        return applyToWidget(context, manager, widgetId, views, imageViewId, rootViewId,
+                fallbackBackground, widthDp, heightDp, 72);
+    }
+
+    static boolean applyToWidget(Context context, AppWidgetManager manager,
+                                 int widgetId, RemoteViews views, int imageViewId,
+                                 int rootViewId, int fallbackBackground,
+                                 int widthDp, int heightDp, int overlayAlpha) {
+        if (!hasBackground(context)) {
+            views.setViewVisibility(imageViewId, View.GONE);
+            views.setInt(rootViewId, "setBackgroundResource", fallbackBackground);
+            return false;
+        }
+        int width = Math.max(1, Math.min(720, UiKit.dp(context, widthDp)));
+        int height = Math.max(1, Math.min(720, UiKit.dp(context, heightDp)));
         Bitmap source = load(context, width, height);
         if (source == null) {
             views.setViewVisibility(imageViewId, View.GONE);
@@ -154,7 +171,7 @@ final class BackgroundImageManager {
         clip.addRoundRect(bounds, radius, radius, Path.Direction.CW);
         canvas.clipPath(clip);
         drawCenterCrop(canvas, source, bounds, paint);
-        paint.setColor(Color.argb(72, 0, 0, 0));
+        paint.setColor(Color.argb(overlayAlpha, 0, 0, 0));
         canvas.drawRect(bounds, paint);
         source.recycle();
 

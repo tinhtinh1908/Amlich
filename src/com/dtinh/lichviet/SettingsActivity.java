@@ -1,337 +1,367 @@
 package com.dtinh.lichviet;
 
-import android.app.Dialog;
+import android.animation.ValueAnimator;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.res.ColorStateList;
 import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.RectF;
+import android.graphics.Insets;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.view.Gravity;
+import android.transition.ChangeBounds;
+import android.transition.Fade;
+import android.transition.TransitionSet;
 import android.view.View;
 import android.view.WindowInsets;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.ScrollView;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
-/** App preferences kept outside the calendar screen. */
 public final class SettingsActivity extends ThemedActivity {
     private static final int REQUEST_BACKGROUND_IMAGE = 4102;
+    private PopupWindow selectionPopup;
 
-    @Override protected void onCreate(Bundle state) {
-        super.onCreate(state);
-        UiKit.Palette colors = new UiKit.Palette(this);
-
-        ScrollView scroll = new ScrollView(this);
-        scroll.setFillViewport(true);
-        scroll.setBackground(UiKit.pageBackground(colors));
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        int page = UiKit.dp(this, 18);
-        root.setPadding(page, page, page, UiKit.dp(this, 30));
-        scroll.addView(root, new ScrollView.LayoutParams(-1, -2));
-
-        LinearLayout header = new LinearLayout(this);
-        header.setGravity(Gravity.CENTER_VERTICAL);
-        View back = new BackButton(colors.surface, colors.primary);
-        back.setContentDescription("Quay lại");
-        back.setOnClickListener(v -> finish());
-        header.addView(back, new LinearLayout.LayoutParams(UiKit.dp(this, 40), UiKit.dp(this, 40)));
-        TextView title = UiKit.text(this, "Cài đặt", 25, colors.primary, true);
-        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(0, -2, 1);
-        titleParams.setMarginStart(UiKit.dp(this, 14));
-        header.addView(title, titleParams);
-        root.addView(header, row(-1, UiKit.dp(this, 50), 0));
-
-        root.addView(sectionLabel("GIAO DIỆN", colors), row(-1, -2, 24));
-        LinearLayout themeCard = card(colors);
-        themeCard.setClickable(true);
-        themeCard.setFocusable(true);
-        themeCard.setContentDescription("Chọn chủ đề giao diện");
-        themeCard.addView(UiKit.text(this, "Chủ đề", 16,
-                colors.primary, true), new LinearLayout.LayoutParams(0, -2, 1));
-        TextView selectedTheme = UiKit.text(this,
-                themeLabel(ThemeManager.getMode(this)) + "  ›", 14,
-                colors.accent, true);
-        selectedTheme.setGravity(Gravity.CENTER_VERTICAL | Gravity.END);
-        themeCard.addView(selectedTheme, new LinearLayout.LayoutParams(-2, -2));
-        themeCard.setOnClickListener(v -> showThemePicker());
-        root.addView(themeCard, row(-1, -2, 8));
-
-        LinearLayout backgroundCard = card(colors);
-        backgroundCard.addView(UiKit.text(this, "Ảnh nền lịch", 16,
-                colors.primary, true), new LinearLayout.LayoutParams(0, -2, 1));
-        if (BackgroundImageManager.hasBackground(this)) {
-            TextView removeBackground = UiKit.button(this, "XÓA",
-                    colors.primary, colors.surfaceSoft, 12);
-            removeBackground.setOnClickListener(v -> {
-                BackgroundImageManager.clearBackground(this);
-                recreate();
-            });
-            LinearLayout.LayoutParams removeParams = new LinearLayout.LayoutParams(
-                    UiKit.dp(this, 64), UiKit.dp(this, 44));
-            removeParams.setMarginStart(UiKit.dp(this, 8));
-            backgroundCard.addView(removeBackground, removeParams);
-        }
-        TextView chooseBackground = UiKit.button(this,
-                BackgroundImageManager.hasBackground(this) ? "ĐỔI ẢNH" : "CHỌN ẢNH",
-                -1, colors.accent, 12);
-        chooseBackground.setOnClickListener(v -> openBackgroundPicker());
-        LinearLayout.LayoutParams chooseParams = new LinearLayout.LayoutParams(
-                UiKit.dp(this, 92), UiKit.dp(this, 44));
-        chooseParams.setMarginStart(UiKit.dp(this, 8));
-        backgroundCard.addView(chooseBackground, chooseParams);
-        root.addView(backgroundCard, row(-1, -2, 8));
-
-        if (BackgroundImageManager.hasBackground(this)) {
-            LinearLayout frostedCard = card(colors);
-            frostedCard.addView(UiKit.text(this, "Nền mờ", 16,
-                    colors.primary, true), new LinearLayout.LayoutParams(0, -2, 1));
-            Switch frostedSwitch = new Switch(this);
-            frostedSwitch.setContentDescription("Bật hoặc tắt nền mờ của nút widget 4x4");
-            frostedSwitch.setChecked(BackgroundImageManager.isFrostedEnabled(this));
-            tintSwitch(frostedSwitch, colors);
-            frostedSwitch.setOnCheckedChangeListener((button, checked) ->
-                    BackgroundImageManager.setFrostedEnabled(this, checked));
-            frostedCard.addView(frostedSwitch, new LinearLayout.LayoutParams(-2, -2));
-            root.addView(frostedCard, row(-1, -2, 8));
-        }
-
-        root.addView(sectionLabel("DỮ LIỆU", colors), row(-1, -2, 24));
-        LinearLayout backupCard = card(colors);
-        LinearLayout backupText = new LinearLayout(this);
-        backupText.setOrientation(LinearLayout.VERTICAL);
-        backupText.addView(UiKit.text(this, "Sao lưu ghi chú", 16, colors.primary, true));
-        backupCard.addView(backupText, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView backup = UiKit.button(this, "SAO LƯU", -1, colors.accent, 12);
-        backup.setOnClickListener(v -> XiaomiNotesBackup.showBackupDialog(this));
-        LinearLayout.LayoutParams backupParams = new LinearLayout.LayoutParams(
-                UiKit.dp(this, 92), UiKit.dp(this, 44));
-        backupParams.setMarginStart(UiKit.dp(this, 12));
-        backupCard.addView(backup, backupParams);
-        root.addView(backupCard, row(-1, -2, 8));
-
-        root.addView(sectionLabel("ỨNG DỤNG", colors), row(-1, -2, 24));
-        LinearLayout updateCard = card(colors);
-        LinearLayout updateText = new LinearLayout(this);
-        updateText.setOrientation(LinearLayout.VERTICAL);
-        updateText.addView(UiKit.text(this, "Kiểm tra cập nhật", 16, colors.primary, true));
-        updateCard.addView(updateText, new LinearLayout.LayoutParams(0, -2, 1));
-        Switch updateSwitch = new Switch(this);
-        updateSwitch.setContentDescription("Bật hoặc tắt kiểm tra cập nhật");
-        updateSwitch.setChecked(UpdateChecker.isEnabled(this));
-        tintSwitch(updateSwitch, colors);
-        updateSwitch.setOnCheckedChangeListener((button, checked) -> {
-            UpdateChecker.setEnabled(this, checked);
-            if (checked) UpdateChecker.check(this);
-        });
-        LinearLayout.LayoutParams switchParams = new LinearLayout.LayoutParams(-2, -2);
-        switchParams.setMarginStart(UiKit.dp(this, 12));
-        updateCard.addView(updateSwitch, switchParams);
-        root.addView(updateCard, row(-1, -2, 8));
-
-        TextView version = UiKit.text(this,
-                "Âm lịch Việt Nam  ·  Phiên bản " + versionName(), 12,
-                colors.primary, true);
-        version.setGravity(Gravity.CENTER);
-        root.addView(version, row(-1, UiKit.dp(this, 28), 26));
-        TextView copyright = UiKit.text(this,
-                "Copyright © 2026 DTINH. All rights reserved.", 10,
-                colors.secondary, false);
-        copyright.setGravity(Gravity.CENTER);
-        root.addView(copyright, row(-1, UiKit.dp(this, 24), 0));
-
-        setContentView(scroll);
-        UiKit.applySystemBars(this, colors);
-        root.setOnApplyWindowInsetsListener((view, insets) -> {
-            android.graphics.Insets bars = insets.getInsets(
-                    WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
-            root.setPadding(page, page + bars.top, page,
-                    UiKit.dp(this, 30) + bars.bottom);
-            return insets;
-        });
-        root.requestApplyInsets();
-        UiKit.animateIn(root, 10.0f);
-    }
-
-    private void openBackgroundPicker() {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT)
-                .addCategory(Intent.CATEGORY_OPENABLE)
-                .setType("image/*")
-                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
-                        | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-        startActivityForResult(intent, REQUEST_BACKGROUND_IMAGE);
+    private interface Selection {
+        void apply(int i);
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode != REQUEST_BACKGROUND_IMAGE || resultCode != RESULT_OK
-                || data == null || data.getData() == null) return;
-        if (BackgroundImageManager.setBackground(this, data.getData(), data.getFlags())) {
-            recreate();
-        } else {
-            Toast.makeText(this, "Không thể đọc ảnh đã chọn", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private LinearLayout card(UiKit.Palette colors) {
-        LinearLayout card = new LinearLayout(this);
-        card.setGravity(Gravity.CENTER_VERTICAL);
-        int p = UiKit.dp(this, 16);
-        card.setPadding(p, p, p, p);
-        card.setBackground(cardBackground(colors));
-        return card;
-    }
-
-    private android.graphics.drawable.Drawable cardBackground(UiKit.Palette colors) {
-        return UiKit.rounded(colors.surface, UiKit.dp(this, 20));
-    }
-
-    private void showThemePicker() {
-        String[] labels = {"Tự động · Sáng/Tối", "Sáng", "Tối"};
-        UiKit.Palette colors = new UiKit.Palette(this);
-        Dialog dialog = new Dialog(this);
-        LinearLayout panel = new LinearLayout(this);
-        panel.setOrientation(LinearLayout.VERTICAL);
-        int padding = UiKit.dp(this, 20);
-        panel.setPadding(padding, padding, padding, UiKit.dp(this, 12));
-        panel.setBackground(UiKit.rounded(colors.surface, UiKit.dp(this, 26)));
-        panel.addView(UiKit.text(this, "Chủ đề", 21, colors.primary, true),
-                new LinearLayout.LayoutParams(-1, UiKit.dp(this, 40)));
-
-        int selectedMode = ThemeManager.getMode(this);
-        for (int mode = ThemeManager.AUTO; mode <= ThemeManager.DARK; mode++) {
-            final int selected = mode;
-            LinearLayout option = new LinearLayout(this);
-            option.setGravity(Gravity.CENTER_VERTICAL);
-            option.setPadding(UiKit.dp(this, 14), 0, UiKit.dp(this, 14), 0);
-            option.setClickable(true);
-            option.setFocusable(true);
-            option.setBackground(UiKit.rounded(
-                    mode == selectedMode ? colors.accentSoft : colors.surfaceSoft,
-                    UiKit.dp(this, 16)));
-            TextView label = UiKit.text(this, labels[mode], 15, colors.primary, true);
-            option.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
-            TextView check = UiKit.text(this, mode == selectedMode ? "✓" : "", 18,
-                    colors.accent, true);
-            check.setGravity(Gravity.CENTER);
-            option.addView(check, new LinearLayout.LayoutParams(
-                    UiKit.dp(this, 28), UiKit.dp(this, 28)));
-            option.setOnClickListener(v -> {
-                dialog.dismiss();
-                if (selected == ThemeManager.getMode(this)) return;
-                ThemeManager.setMode(this, selected);
+    protected void onCreate(Bundle bundle) {
+        super.onCreate(bundle);
+        UiKit.Palette palette = new UiKit.Palette(this);
+        ScrollView scrollView = new ScrollView(this);
+        scrollView.setFillViewport(true);
+        scrollView.setBackground(UiKit.pageBackground(palette));
+        LinearLayout linearLayout = new LinearLayout(this);
+        linearLayout.setOrientation(1);
+        int iDp = UiKit.dp(this, 16.0f);
+        linearLayout.setPadding(iDp, iDp, iDp, UiKit.dp(this, 24.0f));
+        scrollView.addView(linearLayout, new FrameLayout.LayoutParams(-1, -2));
+        LinearLayout linearLayout2 = new LinearLayout(this);
+        linearLayout2.setGravity(16);
+        BackButton backButton = new BackButton(palette.surface, palette.primary);
+        backButton.setContentDescription("Quay lại");
+        backButton.setOnClickListener(view -> {
+            finish();
+        });
+        linearLayout2.addView(backButton, new LinearLayout.LayoutParams(UiKit.dp(this, 36.0f), UiKit.dp(this, 36.0f)));
+        TextView textViewText = UiKit.text(this, "Cài đặt", 22.0f, palette.primary, true);
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(0, -2, 1.0f);
+        layoutParams.setMarginStart(UiKit.dp(this, 16.0f));
+        linearLayout2.addView(textViewText, layoutParams);
+        linearLayout.addView(linearLayout2, row(-1, UiKit.dp(this, 48.0f), 0));
+        LinearLayout supportGroup = preferenceGroup(linearLayout, getString(R.string.support_section), palette);
+        TextView supportAction = UiKit.text(this, getString(R.string.support_view), 14, palette.accent, false);
+        Drawable supportArrow = getDrawable(R.drawable.ic_chevron_right).mutate();
+        supportArrow.setTint(palette.secondary);
+        supportArrow.setBounds(0, 0, UiKit.dp(this, 14), UiKit.dp(this, 14));
+        supportAction.setCompoundDrawablesRelative(null, null, supportArrow, null);
+        supportAction.setCompoundDrawablePadding(UiKit.dp(this, 6));
+        preferenceRow(supportGroup, getString(R.string.support_title), supportAction, palette)
+                .setOnClickListener(view -> SupportDialog.show(this));
+        LinearLayout linearLayoutPreferenceGroup = preferenceGroup(linearLayout, "Giao diện", palette);
+        TextView textViewText2 = UiKit.text(this, ThemeManager.isMinimal(this) ? "Lịch xé" : "Tháng / năm", 14.0f, palette.secondary, false);
+        setPreferenceArrow(textViewText2, palette.secondary);
+        preferenceRow(linearLayoutPreferenceGroup, "Chế độ hiển thị", textViewText2, palette).setOnClickListener(view2 -> {
+            showChoicePicker(textViewText2, new String[]{"Lịch tháng / năm", "Lịch xé từng ngày"}, ThemeManager.isMinimal(this) ? 1 : 0, i -> {
+                ThemeManager.setMinimal(this, i == 1);
                 recreate();
             });
-            LinearLayout.LayoutParams optionParams = new LinearLayout.LayoutParams(
-                    -1, UiKit.dp(this, 52));
-            optionParams.topMargin = UiKit.dp(this, 8);
-            panel.addView(option, optionParams);
+        });
+        String[] strArr = {"Theo hệ thống", "Sáng", "Tối"};
+        TextView textViewText3 = UiKit.text(this, strArr[ThemeManager.getMode(this)], 14.0f, palette.secondary, false);
+        setPreferenceArrow(textViewText3, palette.secondary);
+        preferenceRow(linearLayoutPreferenceGroup, "Sáng / tối", textViewText3, palette).setOnClickListener(view3 -> {
+            showChoicePicker(textViewText3, strArr, ThemeManager.getMode(this), i -> {
+                ThemeManager.setMode(this, i);
+                recreate();
+            });
+        });
+        TextView textViewText4 = UiKit.text(this, AppColors.NAMES[ThemeManager.getColorScheme(this)], 14.0f, palette.secondary, false);
+        setPreferenceArrow(textViewText4, palette.secondary);
+        preferenceRow(linearLayoutPreferenceGroup, "Màu sắc", textViewText4, palette).setOnClickListener(view4 -> {
+            showColorPicker(textViewText4);
+        });
+        TextView textViewButton = UiKit.button(this, BackgroundImageManager.hasBackground(this) ? "Đổi ảnh" : "Chọn ảnh", palette.accent, palette.accentSoft, 16.0f);
+        textViewButton.setOnClickListener(view5 -> {
+            openBackgroundPicker();
+        });
+        preferenceRow(linearLayoutPreferenceGroup, "Ảnh nền lịch", textViewButton, palette);
+        if (BackgroundImageManager.hasBackground(this)) {
+            MiuixSwitch miuixSwitch = new MiuixSwitch(this);
+            miuixSwitch.setChecked(BackgroundImageManager.isFrostedEnabled(this));
+            miuixSwitch.setContentDescription("Nền mờ");
+            miuixSwitch.setOnCheckedChangeListener((compoundButton, z) -> {
+                BackgroundImageManager.setFrostedEnabled(this, z);
+            });
+            preferenceRow(linearLayoutPreferenceGroup, "Nền mờ", miuixSwitch, palette);
+            TextView textViewButton2 = UiKit.button(this, "Xóa ảnh", palette.danger, palette.surfaceSoft, 16.0f);
+            textViewButton2.setOnClickListener(view6 -> {
+                BackgroundImageManager.clearBackground(this);
+                recreate();
+            });
+            preferenceRow(linearLayoutPreferenceGroup, "Khôi phục nền", textViewButton2, palette);
         }
+        LinearLayout linearLayoutPreferenceGroup2 = preferenceGroup(linearLayout, "Dữ liệu", palette);
+        TextView textViewButton3 = UiKit.button(this, "Sao lưu", palette.accent, palette.accentSoft, 14.0f);
+        UiKit.setIcon(textViewButton3, R.drawable.ic_backup, palette.accent, 16);
+        textViewButton3.setOnClickListener(view7 -> {
+            XiaomiNotesBackup.showBackupDialog(this);
+        });
+        preferenceRow(linearLayoutPreferenceGroup2, "Ghi chú", textViewButton3, palette);
+        LinearLayout linearLayoutPreferenceGroup3 = preferenceGroup(linearLayout, "Ứng dụng", palette);
+        MiuixSwitch miuixSwitch2 = new MiuixSwitch(this);
+        miuixSwitch2.setChecked(UpdateChecker.isEnabled(this));
+        miuixSwitch2.setContentDescription("Kiểm tra cập nhật");
+        miuixSwitch2.setOnCheckedChangeListener((compoundButton2, z2) -> {
+            UpdateChecker.setEnabled(this, z2);
+            if (z2) {
+                UpdateChecker.check(this);
+            }
+        });
+        preferenceRow(linearLayoutPreferenceGroup3, "Kiểm tra cập nhật", miuixSwitch2, palette);
+        TextView textViewText5 = UiKit.text(this, "Âm lịch Việt Nam · " + versionName(), 13.0f, palette.secondary, false);
+        textViewText5.setGravity(17);
+        linearLayout.addView(textViewText5, row(-1, -2, 24));
+        TextView textViewText6 = UiKit.text(this, "Copyright © 2026 DTINH. All rights reserved.", 11.0f, palette.muted, false);
+        textViewText6.setGravity(17);
+        linearLayout.addView(textViewText6, row(-1, -2, 8));
+        setContentView(scrollView);
+        UiKit.applySystemBars(this, palette);
+        linearLayout.setOnApplyWindowInsetsListener((view8, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+            linearLayout.setPadding(iDp + insets.left, iDp + insets.top, iDp + insets.right, UiKit.dp(this, 24.0f) + insets.bottom);
+            return windowInsets;
+        });
+        linearLayout.requestApplyInsets();
+        UiKit.animateChildren(linearLayout);
+    }
 
-        TextView cancel = UiKit.text(this, "HỦY", 13, colors.accent, true);
-        cancel.setGravity(Gravity.CENTER);
-        cancel.setOnClickListener(v -> dialog.dismiss());
-        LinearLayout.LayoutParams cancelParams = new LinearLayout.LayoutParams(
-                UiKit.dp(this, 72), UiKit.dp(this, 44));
-        cancelParams.gravity = Gravity.END;
-        cancelParams.topMargin = UiKit.dp(this, 4);
-        panel.addView(cancel, cancelParams);
+    private LinearLayout preferenceGroup(LinearLayout linearLayout, String str, UiKit.Palette palette) {
+        TextView textViewText = UiKit.text(this, str, 13.0f, palette.secondary, true);
+        textViewText.setPadding(UiKit.dp(this, 12.0f), 0, 0, 0);
+        linearLayout.addView(textViewText, row(-1, -2, 20));
+        LinearLayout linearLayout2 = new LinearLayout(this);
+        linearLayout2.setOrientation(1);
+        linearLayout2.setClipToOutline(true);
+        linearLayout2.setBackground(UiKit.rounded(palette.surface, UiKit.dp(this, MiuixMetrics.CARD_RADIUS)));
+        linearLayout.addView(linearLayout2, row(-1, -2, 8));
+        return linearLayout2;
+    }
 
-        dialog.setContentView(panel);
-        dialog.setCanceledOnTouchOutside(true);
-        dialog.show();
-        android.view.Window window = dialog.getWindow();
-        if (window != null) {
-            window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(
-                    android.graphics.Color.TRANSPARENT));
-            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-            android.view.WindowManager.LayoutParams params = window.getAttributes();
-            params.width = getResources().getDisplayMetrics().widthPixels
-                    - UiKit.dp(this, 36);
-            params.dimAmount = 0.58f;
-            window.setAttributes(params);
+    private void setPreferenceArrow(TextView textView, int i) {
+        Drawable drawableMutate = getDrawable(R.drawable.ic_dropdown).mutate();
+        drawableMutate.setTint(i);
+        int iDp = UiKit.dp(this, 16.0f);
+        drawableMutate.setBounds(0, 0, UiKit.dp(this, 10f), iDp);
+        textView.setCompoundDrawablesRelative(null, null, drawableMutate, null);
+        textView.setCompoundDrawablePadding(UiKit.dp(this, 6.0f));
+    }
+
+    private LinearLayout preferenceRow(LinearLayout linearLayout, String str, View view, UiKit.Palette palette) {
+        LinearLayout linearLayout2 = new LinearLayout(this);
+        linearLayout2.setGravity(16);
+        linearLayout2.setPadding(UiKit.dp(this, 16.0f), UiKit.dp(this, 8.0f), UiKit.dp(this, 16.0f), UiKit.dp(this, 8.0f));
+        linearLayout2.setMinimumHeight(UiKit.dp(this, 56.0f));
+        linearLayout2.setContentDescription(str);
+        linearLayout2.setBackground(UiKit.interactiveBackground(this, palette.surface, MiuixMetrics.CARD_RADIUS));
+        UiKit.bindPressMotion(linearLayout2);
+        linearLayout2.addView(UiKit.text(this, str, 16.0f, palette.primary, false), new LinearLayout.LayoutParams(0, -2, 1.0f));
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(-2, UiKit.dp(this, 36.0f));
+        layoutParams.setMarginStart(UiKit.dp(this, 8.0f));
+        if (view instanceof TextView) {
+            TextView textView = (TextView) view;
+            int screenDp = (int) (getResources().getDisplayMetrics().widthPixels / getResources().getDisplayMetrics().density);
+            textView.setMaxWidth(UiKit.dp(this, Math.min(156f, (screenDp - 64f) * .52f)));
+            textView.setSingleLine(true);
+            textView.setHorizontallyScrolling(false);
+            textView.setAutoSizeTextTypeUniformWithConfiguration(11, 14, 1, 2);
+            textView.setGravity(17);
+            textView.setPadding(UiKit.dp(this, 8.0f), 0, UiKit.dp(this, 8.0f), 0);
         }
-        UiKit.animateIn(panel, 8.0f);
+        linearLayout2.addView(view, layoutParams);
+        linearLayout.addView(linearLayout2, new LinearLayout.LayoutParams(-1, -2));
+        return linearLayout2;
     }
 
-    private String themeLabel(int mode) {
-        if (mode == ThemeManager.LIGHT) return "Sáng";
-        if (mode == ThemeManager.DARK) return "Tối";
-        return "Tự động";
+    private void openBackgroundPicker() {
+        startActivityForResult(new Intent("android.intent.action.OPEN_DOCUMENT").addCategory("android.intent.category.OPENABLE").setType("image/*").addFlags(65), REQUEST_BACKGROUND_IMAGE);
     }
 
-    private TextView sectionLabel(String value, UiKit.Palette colors) {
-        return UiKit.text(this, value, 11, colors.accent, true);
+    @Override
+    protected void onActivityResult(int i, int i2, Intent intent) {
+        super.onActivityResult(i, i2, intent);
+        if (i != REQUEST_BACKGROUND_IMAGE || i2 != -1 || intent == null || intent.getData() == null) {
+            return;
+        }
+        if (BackgroundImageManager.setBackground(this, intent.getData(), intent.getFlags())) {
+            recreate();
+        } else {
+            Toast.makeText(this, "Không thể đọc ảnh đã chọn", 0).show();
+        }
     }
 
-    private void tintSwitch(Switch toggle, UiKit.Palette colors) {
-        int[][] states = {
-                new int[]{android.R.attr.state_checked},
-                new int[]{}
-        };
-        toggle.setThumbTintList(new ColorStateList(states,
-                new int[]{colors.accent, colors.secondary}));
-        toggle.setTrackTintList(new ColorStateList(states,
-                new int[]{withAlpha(colors.accent, 112), withAlpha(colors.muted, 92)}));
+    private void showColorPicker(View view) {
+        showSelectionPicker(view, AppColors.NAMES, ThemeManager.getColorScheme(this), true, i -> {
+            ThemeManager.setColorScheme(this, i);
+            recreate();
+        });
     }
 
-    private int withAlpha(int color, int alpha) {
-        return android.graphics.Color.argb(alpha,
-                android.graphics.Color.red(color),
-                android.graphics.Color.green(color),
-                android.graphics.Color.blue(color));
+    private void showChoicePicker(View view, String[] strArr, int i, Selection selection) {
+        showSelectionPicker(view, strArr, i, false, selection);
     }
 
-    private LinearLayout.LayoutParams row(int width, int height, int topDp) {
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(width, height);
-        params.topMargin = UiKit.dp(this, topDp);
-        return params;
+    private void showSelectionPicker(View view, String[] strArr, int i, boolean z, Selection selection) {
+        UiKit.Palette palette = new UiKit.Palette(this);
+        if (this.selectionPopup != null) {
+            this.selectionPopup.dismiss();
+        }
+        PopupWindow popupWindow = new PopupWindow(this);
+        this.selectionPopup = popupWindow;
+        LinearLayout linearLayout = new LinearLayout(this);
+        linearLayout.setOrientation(1);
+        linearLayout.setPadding(0, 0, 0, 0);
+        linearLayout.setBackground(UiKit.rounded(palette.surface, UiKit.dp(this, MiuixMetrics.CARD_RADIUS)));
+        ScrollView scrollView = new ScrollView(this);
+        scrollView.setVerticalScrollBarEnabled(false);
+        LinearLayout linearLayout2 = new LinearLayout(this);
+        linearLayout2.setOrientation(1);
+        scrollView.addView(linearLayout2, new FrameLayout.LayoutParams(-1, -2));
+        int i2 = 0;
+        while (i2 < strArr.length) {
+            int i3 = i2;
+            boolean z2 = i2 == i;
+            LinearLayout linearLayout3 = new LinearLayout(this);
+            linearLayout3.setGravity(16);
+            linearLayout3.setPadding(UiKit.dp(this, 20.0f), UiKit.dp(this, i2 == 0 ? 20.0f : 12.0f), UiKit.dp(this, 20.0f), UiKit.dp(this, i2 == strArr.length - 1 ? 20.0f : 12.0f));
+            linearLayout3.setMinimumHeight(UiKit.dp(this, 56.0f));
+            linearLayout3.setBackground(UiKit.interactiveBackground(this, palette.surface, MiuixMetrics.POPUP_RADIUS));
+            linearLayout3.setClickable(true);
+            linearLayout3.setFocusable(true);
+            linearLayout3.setSelected(z2);
+            linearLayout3.setContentDescription(strArr[i2] + (z2 ? ", đã chọn" : ""));
+            UiKit.bindPressMotion(linearLayout3);
+            if (z) {
+                UiKit.Palette palette2 = new UiKit.Palette(i2, palette.night);
+                View view2 = new View(this);
+                view2.setImportantForAccessibility(2);
+                view2.setBackground(UiKit.rounded(palette2.accent, UiKit.dp(this, 10.0f)));
+                LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(UiKit.dp(this, 20.0f), UiKit.dp(this, MiuixMetrics.CARD_RADIUS));
+                layoutParams.setMarginEnd(UiKit.dp(this, 12.0f));
+                linearLayout3.addView(view2, layoutParams);
+            }
+            TextView textViewText = UiKit.text(this, strArr[i2], 16.0f, z2 ? palette.accent : palette.primary, z2);
+            textViewText.setImportantForAccessibility(2);
+            linearLayout3.addView(textViewText, new LinearLayout.LayoutParams(0, -2, 1.0f));
+            ImageView imageView = new ImageView(this);
+            imageView.setImageResource(R.drawable.ic_check);
+            imageView.setImageTintList(ColorStateList.valueOf(palette.accent));
+            imageView.setVisibility(z2 ? 0 : 4);
+            imageView.setImportantForAccessibility(2);
+            LinearLayout.LayoutParams layoutParams2 = new LinearLayout.LayoutParams(UiKit.dp(this, 20.0f), UiKit.dp(this, MiuixMetrics.CARD_RADIUS));
+            layoutParams2.setMarginStart(UiKit.dp(this, 12.0f));
+            linearLayout3.addView(imageView, layoutParams2);
+            linearLayout3.setOnClickListener(view3 -> {
+                popupWindow.dismiss();
+                if (i3 != i) {
+                    selection.apply(i3);
+                }
+            });
+            linearLayout2.addView(linearLayout3, new LinearLayout.LayoutParams(-1, -2));
+            i2++;
+        }
+        int width = getWindow().getDecorView().getWidth();
+        int height = getWindow().getDecorView().getHeight();
+        if (width <= 0) {
+            width = getResources().getDisplayMetrics().widthPixels;
+        }
+        if (height <= 0) {
+            height = getResources().getDisplayMetrics().heightPixels;
+        }
+        int iMin = Math.min(UiKit.dp(this, z ? 240.0f : 272.0f), width - UiKit.dp(this, 32.0f));
+        linearLayout.addView(scrollView, new LinearLayout.LayoutParams(-1, -2));
+        linearLayout.measure(View.MeasureSpec.makeMeasureSpec(iMin, 1073741824), View.MeasureSpec.makeMeasureSpec(0, 0));
+        int iMin2 = Math.min(linearLayout.getMeasuredHeight(), (height * 3) / 5);
+        popupWindow.setContentView(linearLayout);
+        popupWindow.setWidth(iMin);
+        popupWindow.setHeight(iMin2);
+        popupWindow.setBackgroundDrawable(UiKit.rounded(palette.surface, UiKit.dp(this, MiuixMetrics.POPUP_RADIUS)));
+        popupWindow.setElevation(UiKit.dp(this, 16.0f));
+        popupWindow.setFocusable(true);
+        popupWindow.setOutsideTouchable(true);
+        popupWindow.setClippingEnabled(true);
+        popupWindow.setInputMethodMode(2);
+        if (ValueAnimator.areAnimatorsEnabled()) {
+            TransitionSet transitionSet = new TransitionSet();
+            transitionSet.addTransition(new Fade(1));
+            transitionSet.addTransition(new ChangeBounds());
+            transitionSet.setDuration(200L);
+            popupWindow.setEnterTransition(transitionSet);
+            popupWindow.setExitTransition(new Fade(2).setDuration(150L));
+        } else {
+            popupWindow.setEnterTransition(null);
+            popupWindow.setExitTransition(null);
+        }
+        popupWindow.setOnDismissListener(() -> {
+            if (this.selectionPopup == popupWindow) {
+                this.selectionPopup = null;
+            }
+        });
+        popupWindow.showAsDropDown(view, view.getWidth() - iMin, UiKit.dp(this, 4.0f), 3);
+    }
+
+    @Override
+    protected void onDestroy() {
+        BackupUiDialog.dismiss(this);
+        SupportDialog.dismiss(this);
+        if (this.selectionPopup != null) {
+            this.selectionPopup.dismiss();
+        }
+        super.onDestroy();
+    }
+
+    private LinearLayout.LayoutParams row(int i, int i2, int i3) {
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(i, i2);
+        layoutParams.topMargin = UiKit.dp(this, i3);
+        return layoutParams;
     }
 
     private String versionName() {
         try {
-            PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), 0);
-            return info.versionName == null ? "" : info.versionName;
-        } catch (Exception ignored) {
+            PackageInfo packageInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
+            return packageInfo.versionName == null ? "" : packageInfo.versionName;
+        } catch (Exception e) {
             return "";
         }
     }
 
     private final class BackButton extends View {
-        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final int fillColor;
-        private final int iconColor;
+        private final Drawable icon;
 
-        BackButton(int fillColor, int iconColor) {
+        BackButton(int i, int i2) {
             super(SettingsActivity.this);
-            this.fillColor = fillColor;
-            this.iconColor = iconColor;
+            this.icon = SettingsActivity.this.getDrawable(R.drawable.ic_back).mutate();
+            this.icon.setTint(i2);
+            setBackground(UiKit.interactiveBackground(SettingsActivity.this, i, MiuixMetrics.BUTTON_RADIUS));
+            UiKit.bindPressMotion(this);
             setClickable(true);
             setFocusable(true);
         }
 
-        @Override protected void onDraw(Canvas canvas) {
+        @Override
+        protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
-            float density = getResources().getDisplayMetrics().density;
-            paint.setStyle(Paint.Style.FILL);
-            paint.setColor(fillColor);
-            canvas.drawRoundRect(new RectF(0, 0, getWidth(), getHeight()),
-                    15 * density, 15 * density, paint);
-            float cx = getWidth() / 2f;
-            float cy = getHeight() / 2f;
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(1.8f * density);
-            paint.setStrokeCap(Paint.Cap.ROUND);
-            paint.setColor(iconColor);
-            canvas.drawLine(cx + 3 * density, cy - 5 * density,
-                    cx - 3 * density, cy, paint);
-            canvas.drawLine(cx - 3 * density, cy,
-                    cx + 3 * density, cy + 5 * density, paint);
+            float f = getResources().getDisplayMetrics().density;
+            int iRound = Math.round(24.0f * f);
+            int width = (getWidth() - iRound) / 2;
+            int height = (getHeight() - iRound) / 2;
+            this.icon.setBounds(width, height, width + iRound, height + iRound);
+            this.icon.draw(canvas);
         }
     }
 }

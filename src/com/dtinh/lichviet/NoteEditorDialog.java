@@ -9,7 +9,6 @@ import android.text.TextWatcher;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.view.animation.DecelerateInterpolator;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -18,11 +17,8 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
 
-
 public final class NoteEditorDialog {
     private static final int NOTE_LIMIT = 240;
-
-
     private static final Locale VIETNAMESE_LOCALE = new Locale("vi", "VN");
 
     public interface Listener {
@@ -41,9 +37,9 @@ public final class NoteEditorDialog {
         FrameLayout frameLayout = new FrameLayout(context);
         frameLayout.setPadding(UiKit.dp(context, 12.0f), 0, UiKit.dp(context, 12.0f), UiKit.dp(context, 12.0f));
         LinearLayout linearLayout = new LinearLayout(context);
-        linearLayout.setOrientation(LinearLayout.VERTICAL);
-        linearLayout.setPadding(UiKit.dp(context, 22.0f), UiKit.dp(context, 10.0f), UiKit.dp(context, 22.0f), UiKit.dp(context, 20.0f));
-        linearLayout.setBackground(UiKit.rounded(palette.surface, UiKit.dp(context, 28.0f)));
+        linearLayout.setOrientation(1);
+        linearLayout.setPadding(UiKit.dp(context, 24.0f), UiKit.dp(context, 10.0f), UiKit.dp(context, 24.0f), UiKit.dp(context, 20.0f));
+        linearLayout.setBackground(UiKit.rounded(palette.surface, UiKit.dp(context, MiuixMetrics.DIALOG_RADIUS)));
         frameLayout.addView(linearLayout, new FrameLayout.LayoutParams(-1, -2, 80));
         LinearLayout linearLayout2 = new LinearLayout(context);
         linearLayout2.setGravity(17);
@@ -65,14 +61,15 @@ public final class NoteEditorDialog {
         editText.setHint(R.string.note_hint);
         editText.setHintTextColor(palette.secondary);
         editText.setTextColor(palette.primary);
-        editText.setTextSize(15.0f);
+        editText.setTextSize(16.0f);
         editText.setGravity(8388659);
         editText.setInputType(147457);
         editText.setMinLines(4);
         editText.setMaxLines(6);
         editText.setPadding(UiKit.dp(context, 16.0f), UiKit.dp(context, 14.0f), UiKit.dp(context, 16.0f), UiKit.dp(context, 14.0f));
         editText.setFilters(new InputFilter[]{new InputFilter.LengthFilter(NOTE_LIMIT)});
-        editText.setBackground(UiKit.stroked(palette.surfaceSoft, palette.divider, UiKit.dp(context, 16.0f), UiKit.dp(context, 1.0f)));
+        editText.setBackground(UiKit.fieldBackground(context, palette));
+        UiKit.tintField(editText, palette);
         editText.setText(str);
         editText.setSelection(editText.length());
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(-1, UiKit.dp(context, 118.0f));
@@ -103,7 +100,7 @@ public final class NoteEditorDialog {
         layoutParamsMatchWrap4.topMargin = UiKit.dp(context, 15.0f);
         linearLayout.addView(linearLayout3, layoutParamsMatchWrap4);
         if (!str.isEmpty()) {
-            TextView textViewAction = action(context, context.getString(R.string.note_delete), palette.danger, palette.surfaceSoft, false);
+            TextView textViewAction = action(context, context.getString(R.string.note_delete), palette.danger, palette.surfaceSoft);
             textViewAction.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view2) {
@@ -115,21 +112,22 @@ public final class NoteEditorDialog {
                     dialog.dismiss();
                 }
             });
-            linearLayout3.addView(textViewAction, new LinearLayout.LayoutParams(-2, UiKit.dp(context, 44.0f)));
+            LinearLayout.LayoutParams layoutParams2 = new LinearLayout.LayoutParams(-1, UiKit.dp(context, 44.0f));
+            layoutParams2.bottomMargin = UiKit.dp(context, 8.0f);
+            linearLayout.addView(textViewAction, linearLayout.getChildCount() - 1, layoutParams2);
         }
-        linearLayout3.addView(new View(context), new LinearLayout.LayoutParams(0, 1, 1.0f));
-        TextView textViewAction2 = action(context, context.getString(R.string.note_cancel), palette.secondary, 0, false);
+        TextView textViewAction2 = action(context, context.getString(R.string.note_cancel), palette.primary, palette.surfaceSoft);
         textViewAction2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view2) {
                 dialog.dismiss();
             }
         });
-        linearLayout3.addView(textViewAction2, new LinearLayout.LayoutParams(-2, UiKit.dp(context, 44.0f)));
-        TextView textViewAction3 = action(context, context.getString(R.string.note_save), -1, palette.accent, true);
-        LinearLayout.LayoutParams layoutParams2 = new LinearLayout.LayoutParams(-2, UiKit.dp(context, 44.0f));
-        layoutParams2.leftMargin = UiKit.dp(context, 8.0f);
-        linearLayout3.addView(textViewAction3, layoutParams2);
+        linearLayout3.addView(textViewAction2, new LinearLayout.LayoutParams(0, UiKit.dp(context, 44.0f), 1.0f));
+        TextView textViewAction3 = action(context, context.getString(R.string.note_save), palette.onAccent, palette.accent);
+        LinearLayout.LayoutParams layoutParams3 = new LinearLayout.LayoutParams(0, UiKit.dp(context, 44.0f), 1.0f);
+        layoutParams3.leftMargin = UiKit.dp(context, 8.0f);
+        linearLayout3.addView(textViewAction3, layoutParams3);
         textViewAction3.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view2) {
@@ -148,31 +146,25 @@ public final class NoteEditorDialog {
             window.setGravity(80);
             window.addFlags(2);
             WindowManager.LayoutParams attributes = window.getAttributes();
-            attributes.dimAmount = 0.48f;
+            attributes.dimAmount = palette.night ? 0.6f : 0.3f;
             window.setAttributes(attributes);
             window.setSoftInputMode(21);
-            window.setWindowAnimations(0);
+            window.setWindowAnimations(R.style.MiuixDialogAnimation);
         }
         dialog.show();
         if (window != null) {
             window.setLayout(-1, -2);
         }
-        linearLayout.setAlpha(0.0f);
-        linearLayout.setTranslationY(UiKit.dp(context, 28.0f));
-        linearLayout.animate().alpha(1.0f).translationY(0.0f).setDuration(220L).setInterpolator(new DecelerateInterpolator()).start();
+        UiKit.configureDialog(dialog, palette);
         editText.requestFocus();
     }
 
-    private static TextView action(Context context, String str, int i, int i2, boolean z) {
-        TextView textViewText = UiKit.text(context, str, 12.0f, i, true);
-        textViewText.setGravity(17);
-        textViewText.setPadding(UiKit.dp(context, z ? 22.0f : 16.0f), 0, UiKit.dp(context, z ? 22.0f : 16.0f), 0);
-        if (i2 != 0) {
-            textViewText.setBackground(UiKit.rounded(i2, UiKit.dp(context, 15.0f)));
+    private static TextView action(Context context, String str, int i, int i2) {
+        TextView textViewButton = UiKit.button(context, str, i, i2, 16.0f);
+        if (str.equals(context.getString(R.string.note_delete))) {
+            UiKit.setIcon(textViewButton, R.drawable.ic_delete, i, 18);
         }
-        textViewText.setClickable(true);
-        textViewText.setFocusable(true);
-        return textViewText;
+        return textViewButton;
     }
 
     private static LinearLayout.LayoutParams matchWrap() {

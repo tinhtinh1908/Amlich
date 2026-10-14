@@ -3,15 +3,12 @@ package com.dtinh.lichviet;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.net.Uri;
 import android.text.TextUtils;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -21,15 +18,16 @@ import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
-/** Checks the latest public GitHub Release without requiring a token. */
 final class UpdateChecker {
     private static final String API_URL = "https://api.github.com/repos/tinhtinh1908/Amlich/releases/latest";
     private static final String RELEASES_URL = "https://github.com/tinhtinh1908/Amlich/releases/latest";
     private static final String PREFS = "update_checker";
     private static final String KEY_ENABLED = "enabled";
     private static final String KEY_LAST_SUCCESSFUL_DAY = "last_successful_day";
-    private static final int MAX_RESPONSE_CHARS = 256 * 1024;
+    private static final int MAX_RESPONSE_CHARS = 262144;
     private static final AtomicBoolean CHECK_IN_PROGRESS = new AtomicBoolean(false);
 
     private UpdateChecker() {
@@ -39,215 +37,222 @@ final class UpdateChecker {
         if (!isEnabled(activity)) {
             return;
         }
-        final SharedPreferences preferences = activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        final int today = localDayKey();
-        if (preferences.getInt(KEY_LAST_SUCCESSFUL_DAY, 0) == today) {
-            return;
-        }
-        if (!CHECK_IN_PROGRESS.compareAndSet(false, true)) {
+        final SharedPreferences sharedPreferences = activity.getSharedPreferences(PREFS, 0);
+        final int iLocalDayKey = localDayKey();
+        if (sharedPreferences.getInt(KEY_LAST_SUCCESSFUL_DAY, 0) == iLocalDayKey || !CHECK_IN_PROGRESS.compareAndSet(false, true)) {
             return;
         }
         new Thread(new Runnable() {
             @Override
             public void run() {
+                AtomicBoolean atomicBoolean;
                 try {
-                    final ReleaseInfo release = loadLatestRelease(activity.getApplicationContext());
-                    if (release == null) {
+                    final ReleaseInfo releaseInfoLoadLatestRelease = UpdateChecker.loadLatestRelease(activity.getApplicationContext());
+                    if (releaseInfoLoadLatestRelease == null) {
+                        atomicBoolean = UpdateChecker.CHECK_IN_PROGRESS;
                         return;
                     }
-                    // Only throttle a completed request. Offline and transient GitHub
-                    // failures can therefore be retried on the next app launch.
-                    preferences.edit().putInt(KEY_LAST_SUCCESSFUL_DAY, today).apply();
-                    if (!isEnabled(activity)
-                            || compareVersions(release.version, currentVersion(activity)) <= 0) {
-                        return;
-                    }
-                    activity.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (activity.isFinishing() || activity.isDestroyed()) {
-                                return;
+                    sharedPreferences.edit().putInt(UpdateChecker.KEY_LAST_SUCCESSFUL_DAY, iLocalDayKey).apply();
+                    if (!UpdateChecker.isEnabled(activity) || UpdateChecker.compareVersions(releaseInfoLoadLatestRelease.version, UpdateChecker.currentVersion(activity)) <= 0) {
+                        atomicBoolean = UpdateChecker.CHECK_IN_PROGRESS;
+                    } else {
+                        activity.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (!activity.isFinishing() && !activity.isDestroyed()) {
+                                    UpdateChecker.showUpdateDialog(activity, releaseInfoLoadLatestRelease);
+                                }
                             }
-                            showUpdateDialog(activity, release);
-                        }
-                    });
+                        });
+                        atomicBoolean = UpdateChecker.CHECK_IN_PROGRESS;
+                    }
                 } finally {
-                    CHECK_IN_PROGRESS.set(false);
+                    UpdateChecker.CHECK_IN_PROGRESS.set(false);
                 }
             }
         }, "LichViet-UpdateChecker").start();
     }
 
     static boolean isEnabled(Context context) {
-        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .getBoolean(KEY_ENABLED, true);
+        return context.getSharedPreferences(PREFS, 0).getBoolean(KEY_ENABLED, true);
     }
 
-    static void setEnabled(Context context, boolean enabled) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .edit().putBoolean(KEY_ENABLED, enabled).apply();
+    static void setEnabled(Context context, boolean z) {
+        context.getSharedPreferences(PREFS, 0).edit().putBoolean(KEY_ENABLED, z).apply();
     }
 
     private static int localDayKey() {
-        Calendar now = Calendar.getInstance();
-        return now.get(Calendar.YEAR) * 10_000
-                + (now.get(Calendar.MONTH) + 1) * 100
-                + now.get(Calendar.DAY_OF_MONTH);
+        Calendar calendar = Calendar.getInstance();
+        return (calendar.get(1) * 10000) + ((calendar.get(2) + 1) * 100) + calendar.get(5);
     }
 
-    private static ReleaseInfo loadLatestRelease(Context context) {
-        HttpURLConnection connection = null;
+    public static ReleaseInfo loadLatestRelease(Context context) {
+        HttpURLConnection httpURLConnection = null;
         try {
-            connection = (HttpURLConnection) new URL(API_URL).openConnection();
-            connection.setConnectTimeout(8000);
-            connection.setReadTimeout(10000);
-            connection.setRequestProperty("Accept", "application/vnd.github+json");
-            connection.setRequestProperty("X-GitHub-Api-Version", "2022-11-28");
-            connection.setRequestProperty("User-Agent", "LichViet/" + currentVersion(context));
-            connection.setInstanceFollowRedirects(true);
-            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+            httpURLConnection = (HttpURLConnection) new URL(API_URL).openConnection();
+            httpURLConnection.setConnectTimeout(8000);
+            httpURLConnection.setReadTimeout(10000);
+            httpURLConnection.setRequestProperty("Accept", "application/vnd.github+json");
+            httpURLConnection.setRequestProperty("X-GitHub-Api-Version", "2022-11-28");
+            httpURLConnection.setRequestProperty("User-Agent", "LichViet/" + currentVersion(context));
+            httpURLConnection.setInstanceFollowRedirects(true);
+            if (httpURLConnection.getResponseCode() != 200) {
+                if (httpURLConnection != null) {
+                    httpURLConnection.disconnect();
+                }
                 return null;
             }
-
-            JSONObject root = new JSONObject(readLimited(connection.getInputStream()));
-            String version = normalizeVersion(root.optString("tag_name", ""));
-            if (TextUtils.isEmpty(version)) {
+            JSONObject jSONObject = new JSONObject(readLimited(httpURLConnection.getInputStream()));
+            String strNormalizeVersion = normalizeVersion(jSONObject.optString("tag_name", ""));
+            if (TextUtils.isEmpty(strNormalizeVersion)) {
+                if (httpURLConnection != null) {
+                    httpURLConnection.disconnect();
+                }
                 return null;
             }
-
-            String downloadUrl = "";
-            JSONArray assets = root.optJSONArray("assets");
-            if (assets != null) {
-                for (int i = 0; i < assets.length(); i++) {
-                    JSONObject asset = assets.optJSONObject(i);
-                    if (asset == null) {
-                        continue;
-                    }
-                    String name = asset.optString("name", "").toLowerCase(Locale.US);
-                    if (name.endsWith(".apk")) {
-                        downloadUrl = asset.optString("browser_download_url", "");
+            String strOptString = "";
+            JSONArray jSONArrayOptJSONArray = jSONObject.optJSONArray("assets");
+            if (jSONArrayOptJSONArray != null) {
+                for (int i = 0; i < jSONArrayOptJSONArray.length(); i++) {
+                    JSONObject jSONObjectOptJSONObject = jSONArrayOptJSONArray.optJSONObject(i);
+                    if (jSONObjectOptJSONObject != null && jSONObjectOptJSONObject.optString("name", "").toLowerCase(Locale.US).endsWith(".apk")) {
+                        strOptString = jSONObjectOptJSONObject.optString("browser_download_url", "");
                         break;
                     }
                 }
             }
-            String releaseUrl = root.optString("html_url", RELEASES_URL);
-            String targetUrl = isTrustedGitHubUrl(downloadUrl) ? downloadUrl : releaseUrl;
-            if (!isTrustedGitHubUrl(targetUrl)) {
-                targetUrl = RELEASES_URL;
+            String strOptString2 = isTrustedGitHubUrl(strOptString) ? strOptString : jSONObject.optString("html_url", RELEASES_URL);
+            if (!isTrustedGitHubUrl(strOptString2)) {
+                strOptString2 = RELEASES_URL;
             }
-            return new ReleaseInfo(version, targetUrl);
-        } catch (Exception ignored) {
+            ReleaseInfo releaseInfo = new ReleaseInfo(strNormalizeVersion, strOptString2);
+            if (httpURLConnection != null) {
+                httpURLConnection.disconnect();
+            }
+            return releaseInfo;
+        } catch (Exception e) {
+            if (httpURLConnection != null) {
+                httpURLConnection.disconnect();
+            }
             return null;
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
+        } catch (Throwable th) {
+            if (httpURLConnection != null) {
+                httpURLConnection.disconnect();
             }
+            throw th;
         }
     }
 
     private static String readLimited(InputStream inputStream) throws Exception {
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
-            StringBuilder result = new StringBuilder();
-            char[] buffer = new char[4096];
-            int read;
-            while ((read = reader.read(buffer)) != -1) {
-                if (result.length() + read > MAX_RESPONSE_CHARS) {
-                    throw new IllegalStateException("GitHub response is too large");
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+        try {
+            StringBuilder sb = new StringBuilder();
+            char[] cArr = new char[4096];
+            while (true) {
+                int i = bufferedReader.read(cArr);
+                if (i != -1) {
+                    if (sb.length() + i > MAX_RESPONSE_CHARS) {
+                        throw new IllegalStateException("GitHub response is too large");
+                    }
+                    sb.append(cArr, 0, i);
+                } else {
+                    String string = sb.toString();
+                    bufferedReader.close();
+                    return string;
                 }
-                result.append(buffer, 0, read);
             }
-            return result.toString();
+        } catch (Throwable th) {
+            try {
+                bufferedReader.close();
+            } catch (Throwable th2) {
+                th.addSuppressed(th2);
+            }
+            throw th;
         }
     }
 
-    private static String currentVersion(Context context) {
+    public static String currentVersion(Context context) {
         try {
-            PackageInfo info = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
-            return info.versionName == null ? "0" : normalizeVersion(info.versionName);
-        } catch (Exception ignored) {
+            PackageInfo packageInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+            return packageInfo.versionName == null ? "0" : normalizeVersion(packageInfo.versionName);
+        } catch (Exception e) {
             return "0";
         }
     }
 
-    static int compareVersions(String first, String second) {
-        String[] left = normalizeVersion(first).split("\\.");
-        String[] right = normalizeVersion(second).split("\\.");
-        int count = Math.max(left.length, right.length);
-        for (int i = 0; i < count; i++) {
-            int leftPart = i < left.length ? parseVersionPart(left[i]) : 0;
-            int rightPart = i < right.length ? parseVersionPart(right[i]) : 0;
-            if (leftPart != rightPart) {
-                return leftPart < rightPart ? -1 : 1;
+    static int compareVersions(String str, String str2) {
+        String[] strArrSplit = normalizeVersion(str).split("\\.");
+        String[] strArrSplit2 = normalizeVersion(str2).split("\\.");
+        int iMax = Math.max(strArrSplit.length, strArrSplit2.length);
+        int i = 0;
+        while (i < iMax) {
+            int versionPart = i < strArrSplit.length ? parseVersionPart(strArrSplit[i]) : 0;
+            int versionPart2 = i < strArrSplit2.length ? parseVersionPart(strArrSplit2[i]) : 0;
+            if (versionPart != versionPart2) {
+                return versionPart < versionPart2 ? -1 : 1;
             }
+            i++;
         }
         return 0;
     }
 
-    private static String normalizeVersion(String value) {
-        String normalized = value == null ? "" : value.trim();
-        if (normalized.startsWith("v") || normalized.startsWith("V")) {
-            normalized = normalized.substring(1);
+    private static String normalizeVersion(String str) {
+        String strTrim = str == null ? "" : str.trim();
+        if (strTrim.startsWith("v") || strTrim.startsWith("V")) {
+            strTrim = strTrim.substring(1);
         }
-        int suffix = normalized.indexOf('-');
-        if (suffix >= 0) {
-            normalized = normalized.substring(0, suffix);
+        int iIndexOf = strTrim.indexOf(45);
+        if (iIndexOf >= 0) {
+            strTrim = strTrim.substring(0, iIndexOf);
         }
-        return normalized;
+        return strTrim;
     }
 
-    private static int parseVersionPart(String value) {
-        int result = 0;
-        for (int i = 0; i < value.length(); i++) {
-            char character = value.charAt(i);
-            if (character < '0' || character > '9') {
-                break;
-            }
-            if (result > (Integer.MAX_VALUE - (character - '0')) / 10) {
+    private static int parseVersionPart(String str) {
+        char cCharAt;
+        int i = 0;
+        for (int i2 = 0; i2 < str.length() && (cCharAt = str.charAt(i2)) >= '0' && cCharAt <= '9'; i2++) {
+            if (i > (Integer.MAX_VALUE - (cCharAt - '0')) / 10) {
                 return Integer.MAX_VALUE;
             }
-            result = (result * 10) + (character - '0');
+            i = (i * 10) + (cCharAt - '0');
         }
-        return result;
+        return i;
     }
 
-    private static boolean isTrustedGitHubUrl(String value) {
-        if (TextUtils.isEmpty(value)) {
+    private static boolean isTrustedGitHubUrl(String str) {
+        if (TextUtils.isEmpty(str)) {
             return false;
         }
-        Uri uri = Uri.parse(value);
+        Uri uri = Uri.parse(str);
         String host = uri.getHost();
-        return "https".equalsIgnoreCase(uri.getScheme())
-                && host != null
-                && (host.equalsIgnoreCase("github.com") || host.toLowerCase(Locale.US).endsWith(".github.com"));
+        return "https".equalsIgnoreCase(uri.getScheme()) && host != null && (host.equalsIgnoreCase("github.com") || host.toLowerCase(Locale.US).endsWith(".github.com"));
     }
 
-    private static void showUpdateDialog(final Activity activity, final ReleaseInfo release) {
-        new AlertDialog.Builder(activity)
-                .setTitle(R.string.update_available_title)
-                .setMessage(activity.getString(R.string.update_available_message, release.version))
-                .setNegativeButton(R.string.update_later, null)
-                .setPositiveButton(R.string.update_download, (dialog, which) -> {
-                    try {
-                        activity.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(release.url)));
-                    } catch (Exception ignored) {
-                        try {
-                            activity.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(RELEASES_URL)));
-                        } catch (Exception ignoredAgain) {
-                            // A device without a browser must not crash the calendar.
-                        }
-                    }
-                })
-                .show();
+    public static void showUpdateDialog(Activity activity, ReleaseInfo releaseInfo) {
+        AlertDialog alertDialogCreate = new AlertDialog.Builder(activity).setTitle(R.string.update_available_title).setMessage(activity.getString(R.string.update_available_message, new Object[]{releaseInfo.version})).setNegativeButton(R.string.update_later, (DialogInterface.OnClickListener) null).setPositiveButton(R.string.update_download, (dialogInterface, i) -> {
+            try {
+                activity.startActivity(new Intent("android.intent.action.VIEW", Uri.parse(releaseInfo.url)));
+            } catch (Exception e) {
+                try {
+                    activity.startActivity(new Intent("android.intent.action.VIEW", Uri.parse(RELEASES_URL)));
+                } catch (Exception e2) {
+                }
+            }
+        }).create();
+        alertDialogCreate.setOnShowListener(dialogInterface2 -> {
+            UiKit.styleAlert(alertDialogCreate, activity);
+        });
+        alertDialogCreate.show();
     }
 
     private static final class ReleaseInfo {
         final String version;
         final String url;
 
-        ReleaseInfo(String version, String url) {
-            this.version = version;
-            this.url = url;
+        ReleaseInfo(String str, String str2) {
+            this.version = str;
+            this.url = str2;
         }
     }
 }

@@ -26,6 +26,23 @@ final class ThemeManager {
         return mode >= AUTO && mode <= DARK ? mode : AUTO;
     }
 
+    static int getColorScheme(Context context) {
+        return AppColors.normalize(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt("color_scheme", 0));
+    }
+    static void setColorScheme(Context context, int scheme) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putInt("color_scheme", AppColors.normalize(scheme)).apply();
+        refreshWidgets(context);
+    }
+
+    static boolean isMinimal(Context context) {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean("minimal_layout", false);
+    }
+
+    static void setMinimal(Context context, boolean enabled) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .putBoolean("minimal_layout", enabled).apply();
+    }
+
     static int resolvedMode(Context context) {
         int mode = getMode(context);
         if (mode != AUTO) return mode;
@@ -78,6 +95,7 @@ final class ThemeManager {
 
     static void refreshWidgets(Context context) {
         refresh(context, VerticalDateWidgetProvider.class);
+        refresh(context, TearCalendarWidgetProvider.class);
         refresh(context, HorizontalDateWidgetProvider.class);
         refreshMonthWidget(context);
     }
@@ -96,87 +114,27 @@ final class ThemeManager {
         context.sendBroadcast(update);
     }
 
-    /** Photo colors are intentionally limited to the 4x4 month widget. */
-    static WidgetStyle monthWidgetStyle(
-            Context context, int selectedMode, int resolvedMode) {
-        if (BackgroundImageManager.hasBackground(context)) {
-            boolean dark = resolvedMode == DARK;
-            return new WidgetStyle(
-                    dark ? R.drawable.widget_background_dark
-                            : R.drawable.widget_background_light,
-                    BackgroundImageManager.isFrostedEnabled(context)
-                            ? (dark ? R.drawable.widget_header_button_photo
-                                    : R.drawable.widget_header_button_photo_light)
-                            : (dark ? R.drawable.widget_header_button_dark
-                                    : R.drawable.widget_header_button_light),
-                    dark ? R.drawable.widget_today_circle_dark
-                            : R.drawable.widget_today_circle_light,
-                    Color.WHITE, Color.rgb(218, 224, 234),
-                    Color.rgb(118, 128, 144), Color.rgb(255, 126, 135),
-                    Color.rgb(99, 158, 247), Color.WHITE,
-                    dark ? Color.rgb(218, 224, 234) : Color.rgb(82, 88, 101),
-                    dark ? Color.rgb(99, 158, 247) : Color.rgb(66, 133, 244));
-        }
-        WidgetStyle resolved = widgetStyleForMode(resolvedMode);
-        if (selectedMode != AUTO) return resolved;
-        return new WidgetStyle(
-                R.drawable.widget_background,
-                R.drawable.widget_header_button,
-                R.drawable.widget_today_circle,
-                resolved.primary, resolved.secondary, resolved.muted,
-                resolved.sunday, resolved.accent, resolved.onAccent,
-                resolved.headerSecondary, resolved.headerAccent);
+    /** Shared widget contrast colors; backgrounds are rendered by each provider. */
+    static WidgetStyle monthWidgetStyle(Context context, int resolvedMode) {
+        WidgetStyle plain = widgetStyleForMode(context, resolvedMode);
+        if (!BackgroundImageManager.hasBackground(context)) return plain;
+        return new WidgetStyle(plain.background, Color.WHITE, 0xffdae0ea, 0xff768090,
+                0xffff7e87, 0xff639ef7, Color.WHITE);
     }
 
-    private static WidgetStyle widgetStyleForMode(int mode) {
-        if (mode == DARK) {
-            return new WidgetStyle(
-                    R.drawable.widget_background_dark,
-                    R.drawable.widget_header_button_dark,
-                    R.drawable.widget_today_circle_dark,
-                    Color.rgb(245, 247, 250), Color.rgb(168, 172, 182),
-                    Color.rgb(86, 90, 100), Color.rgb(244, 116, 116),
-                    Color.rgb(91, 150, 247), Color.WHITE,
-                    Color.rgb(168, 172, 182), Color.rgb(91, 150, 247));
-        }
-        return new WidgetStyle(
-                R.drawable.widget_background_light,
-                R.drawable.widget_header_button_light,
-                R.drawable.widget_today_circle_light,
-                Color.rgb(23, 26, 34), Color.rgb(111, 116, 128),
-                Color.rgb(194, 198, 207), Color.rgb(221, 75, 75),
-                Color.rgb(66, 133, 244), Color.WHITE,
-                Color.rgb(111, 116, 128), Color.rgb(66, 133, 244));
+    static WidgetStyle widgetStyleForMode(Context context, int mode) {
+        int[] colors = AppColors.recipe(getColorScheme(context), mode == DARK);
+        return new WidgetStyle(mode == DARK ? R.drawable.widget_background_dark : R.drawable.widget_background_light,
+                colors[4], colors[5], colors[6], colors[9], colors[7], colors[10]);
     }
 
     static final class WidgetStyle {
-        final int background;
-        final int headerButton;
-        final int todayCircle;
-        final int primary;
-        final int secondary;
-        final int muted;
-        final int sunday;
-        final int accent;
-        final int onAccent;
-        final int headerSecondary;
-        final int headerAccent;
-
-        WidgetStyle(int background, int headerButton, int todayCircle,
-                    int primary, int secondary, int muted, int sunday,
-                    int accent, int onAccent, int headerSecondary,
-                    int headerAccent) {
-            this.background = background;
-            this.headerButton = headerButton;
-            this.todayCircle = todayCircle;
-            this.primary = primary;
-            this.secondary = secondary;
-            this.muted = muted;
-            this.sunday = sunday;
-            this.accent = accent;
-            this.onAccent = onAccent;
-            this.headerSecondary = headerSecondary;
-            this.headerAccent = headerAccent;
+        final int background, primary, secondary, muted, sunday, accent, onAccent;
+        WidgetStyle(int background, int primary, int secondary, int muted,
+                    int sunday, int accent, int onAccent) {
+            this.background = background; this.primary = primary;
+            this.secondary = secondary; this.muted = muted;
+            this.sunday = sunday; this.accent = accent; this.onAccent = onAccent;
         }
     }
 }

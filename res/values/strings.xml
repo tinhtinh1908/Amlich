@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Âm lịch Việt Nam</string>
-    <string name="backup_create">TẠO BẢN SAO</string>
+    <string name="backup_create">Tạo bản sao</string>
     <string name="backup_create_failed">Không thể tạo bản sao lưu.</string>
     <string name="backup_creating">Đang mã hóa bản sao lưu…</string>
     <string name="backup_dialog_message">Tạo mật khẩu để mã hóa. Sau đó hãy lưu nội dung vào Ghi chú Xiaomi; Mi Cloud sẽ đồng bộ như một ghi chú bình thường.</string>
@@ -18,15 +18,15 @@
     <string name="backup_share_chooser">Lưu bản sao bằng ứng dụng</string>
     <string name="backup_share_failed">Hệ thống không thể mở ứng dụng nhận bản sao lưu.</string>
     <string name="backup_too_large">Bản sao lưu quá lớn để gửi an toàn qua Ghi chú Xiaomi.</string>
-    <string name="note_cancel">HỦY</string>
-    <string name="note_delete">XÓA</string>
+    <string name="note_cancel">Hủy</string>
+    <string name="note_delete">Xóa</string>
     <string name="note_hint">Nhập ghi chú cho ngày này</string>
-    <string name="note_save">LƯU</string>
+    <string name="note_save">Lưu</string>
     <string name="note_title">Ghi chú ngày</string>
-    <string name="restore_apply">KHÔI PHỤC</string>
+    <string name="restore_apply">Khôi phục</string>
     <string name="restore_confirm_message">Tìm thấy %1$d ghi chú. Bạn có muốn nhập vào Lịch Việt không?</string>
     <string name="restore_confirm_title">Sẵn sàng khôi phục</string>
-    <string name="restore_decrypt">GIẢI MÃ</string>
+    <string name="restore_decrypt">Giải mã</string>
     <string name="restore_decrypting">Đang kiểm tra bản sao lưu…</string>
     <string name="restore_dialog_message">Nhập mật khẩu đã dùng khi tạo bản sao lưu. Ghi chú cùng ngày sẽ được cập nhật; ghi chú khác vẫn được giữ nguyên.</string>
     <string name="restore_dialog_title">Khôi phục ghi chú</string>
@@ -36,7 +36,30 @@
     <string name="update_available_message">Đã có Lịch Việt %1$s. Bạn có muốn tải APK mới từ GitHub không?</string>
     <string name="update_download">TẢI CẬP NHẬT</string>
     <string name="update_later">ĐỂ SAU</string>
-    <string name="widget_month_name">Lịch Việt tháng 4×4</string>
+    <string name="widget_month_name">Lịch Việt tháng 3×3</string>
     <string name="widget_size_1x2">Lịch Việt 1×2</string>
     <string name="widget_size_2x1">Lịch Việt 2×1</string>
+    <string name="backup_compact_message">Đặt mật khẩu để mã hóa bản sao rồi lưu vào Ghi chú Xiaomi.</string>
+    <string name="restore_compact_message">Nhập mật khẩu đã dùng để mã hóa bản sao lưu.</string>
+    <string name="support_section">Ủng hộ</string>
+    <string name="support_title">Ủng hộ dự án</string>
+    <string name="support_view">Xem</string>
+    <string name="support_message">Mỗi lượt ủng hộ đều giúp dự án được duy trì và cập nhật tốt hơn. Cảm ơn bạn!</string>
+    <string name="support_bank_label">Ngân hàng</string>
+    <string name="support_bank_name">Vietcombank</string>
+    <string name="support_owner_label">Chủ tài khoản</string>
+    <string name="support_account_name">DINH DUC TINH</string>
+    <string name="support_account_label">Số tài khoản</string>
+    <string name="support_account_number">1032359704</string>
+    <string name="support_copy_hint">Chạm để sao chép</string>
+    <string name="support_copied">Đã sao chép số tài khoản</string>
+    <string name="support_close">Đóng</string>
+    <string name="support_bank_bin">970436</string>
+    <string name="support_qr_hint">Quét QR bằng ứng dụng ngân hàng</string>
+    <string name="support_qr_description">Mã QR chuyển khoản Vietcombank, số tài khoản 1032359704</string>
+    <string name="support_copy_action">Sao chép STK</string>
+    <string name="support_save_qr">Lưu QR</string>
+    <string name="support_qr_saved">Đã lưu QR vào Ảnh/LichViet</string>
+    <string name="support_qr_save_failed">Không thể lưu mã QR</string>
+    <string name="widget_size_2x2">Lịch xé 2×2</string>
 </resources>

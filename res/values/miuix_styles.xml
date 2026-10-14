@@ -1,0 +1,12 @@
+<resources>
+    <style name="MiuixDialogAnimation">
+        <item name="android:windowEnterAnimation">@anim/miuix_dialog_enter</item>
+        <item name="android:windowExitAnimation">@anim/miuix_dialog_exit</item>
+    </style>
+    <style name="MiuixActivityAnimation">
+        <item name="android:activityOpenEnterAnimation">@anim/miuix_page_enter</item>
+        <item name="android:activityOpenExitAnimation">@anim/miuix_page_hold</item>
+        <item name="android:activityCloseEnterAnimation">@anim/miuix_page_return</item>
+        <item name="android:activityCloseExitAnimation">@anim/miuix_page_exit</item>
+    </style>
+</resources>

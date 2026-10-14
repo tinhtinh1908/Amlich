@@ -1,0 +1,7 @@
+Native Miuix design adaptation
+Original source: https://github.com/miuix-kotlin-multiplatform/miuix
+Revision: 6ef604ae6d53e4b241cdb89ccbf2caf86a7a33d0
+Squircle path: Copyright 2026, compose-miuix-ui contributors.
+Icons: Copyright 2025, compose-miuix-ui contributors.
+Apache-2.0; see LICENSE.txt.
+The application uses native Android Views, without the Miuix UI library.
