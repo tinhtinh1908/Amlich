@@ -499,7 +499,6 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
             </intent-filter>
-            <meta-data android:name="miuiWidget" android:value="true"/>
             <meta-data android:name="supportBackgroundBlur" android:value="true"/>
             <meta-data android:name="usingFolderGlassStyle" android:value="true"/>
             <meta-data
@@ -525,7 +524,6 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
             </intent-filter>
-            <meta-data android:name="miuiWidget" android:value="true"/>
             <meta-data android:name="supportBackgroundBlur" android:value="true"/>
             <meta-data android:name="usingFolderGlassStyle" android:value="true"/>
             <meta-data
@@ -573,7 +571,6 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
             </intent-filter>
-            <meta-data android:name="miuiWidget" android:value="true"/>
             <meta-data android:name="supportBackgroundBlur" android:value="true"/>
             <meta-data android:name="usingFolderGlassStyle" android:value="true"/>
             <meta-data
@@ -599,7 +596,6 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
             </intent-filter>
-            <meta-data android:name="miuiWidget" android:value="true"/>
             <meta-data android:name="supportBackgroundBlur" android:value="true"/>
             <meta-data android:name="usingFolderGlassStyle" android:value="true"/>
             <meta-data
@@ -625,7 +621,6 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
             </intent-filter>
-            <meta-data android:name="miuiWidget" android:value="true"/>
             <meta-data android:name="supportBackgroundBlur" android:value="true"/>
             <meta-data android:name="usingFolderGlassStyle" android:value="true"/>
             <meta-data
@@ -651,7 +646,6 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
             </intent-filter>
-            <meta-data android:name="miuiWidget" android:value="true"/>
             <meta-data android:name="supportBackgroundBlur" android:value="true"/>
             <meta-data android:name="usingFolderGlassStyle" android:value="true"/>
             <meta-data
@@ -680,8 +674,6 @@
             <meta-data android:name="supportBackgroundBlur" android:value="true"/>
             <meta-data android:name="usingFolderGlassStyle" android:value="true"/>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_wide_day_info"/>
-            <meta-data android:name="miuiWidget" android:value="true"/>
         </receiver>
-        <meta-data android:name="miuiWidgetVersion" android:value="8"/>
     </application>
 </manifest>

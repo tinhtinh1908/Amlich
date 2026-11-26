@@ -34,6 +34,10 @@ Thiết kế native tham khảo Miuix 0.9.4: góc squircle, kích thước compo
 kiểu chữ và màu mặc định được mô phỏng bằng Java/Android Views. Các thông số
 và nguồn đối chiếu nằm tại `licenses/miuix-native-design.md`.
 
+## Phiên bản 2.7 (versionCode 50)
+
+- Khôi phục danh sách widget Âm Lịch trong mục Widget Android trên HyperOS.
+
 ## Phiên bản 2.6 (versionCode 49)
 
 - Tối ưu chuyển tab và hiệu ứng xé lịch.

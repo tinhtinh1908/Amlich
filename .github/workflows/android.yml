@@ -54,14 +54,14 @@ jobs:
         if: ${{ !cancelled() && steps.android-build.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
-          name: AmLichViet-2.6-vc49-debug
+          name: AmLichViet-2.7-vc50-debug
           path: build/outputs/apk/debug/*.apk
           if-no-files-found: error
       - name: Upload unsigned release APK
         if: ${{ !cancelled() && steps.android-build.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
-          name: AmLichViet-2.6-vc49-release-unsigned
+          name: AmLichViet-2.7-vc50-release-unsigned
           path: build/outputs/apk/release/*.apk
           if-no-files-found: error
       - name: Upload lint report
