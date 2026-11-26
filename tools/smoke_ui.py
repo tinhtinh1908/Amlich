@@ -34,8 +34,14 @@ def check_notes():
     root = hierarchy()
     calendar = next(n for n in root.iter('node') if n.get('content-desc') == 'Lịch tháng Việt Nam')
     x1,y1,x2,y2 = map(int, re.findall(r'\d+', calendar.get('bounds')))
-    density = int(re.search(r'\d+', adb('shell','wm','density')).group()) / 160
-    adb('shell','input','tap',str((x1+x2)//2),str(int(y2-34*density)))
+    density = int(re.findall(r'\d+', adb('shell', 'wm', 'density'))[-1]) / 160
+    # Match the detail panel's adaptive spacing on tall displays.
+    height_dp = (y2 - y1) / density
+    grid_top_dp = 52 + min(40, (height_dp - 52) * 0.09)
+    grid_space_dp = height_dp - 8 - 216 - 12 - grid_top_dp
+    panel_inset_dp = min(56, max(0, grid_space_dp - 300) * 0.34)
+    note_y = round(y2 - (8 + panel_inset_dp + 38) * density)
+    adb('shell', 'input', 'tap', str((x1 + x2) // 2), str(note_y))
     time.sleep(1)
     texts = {n.get('text') for n in hierarchy().iter('node')}
     assert 'Ghi chú ngày' in texts, 'Note editor cannot be opened from the date detail'
