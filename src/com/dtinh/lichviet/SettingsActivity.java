@@ -1,8 +1,12 @@
 package com.dtinh.lichviet;
 
 import android.animation.ValueAnimator;
+import android.app.AppOpsManager;
 import android.app.Dialog;
+import android.app.AlertDialog;
+import android.appwidget.AppWidgetManager;
 import android.content.ActivityNotFoundException;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.res.ColorStateList;
@@ -12,9 +16,11 @@ import android.graphics.Insets;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.RippleDrawable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Build;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.transition.Fade;
 import android.view.Gravity;
 import android.view.View;
@@ -32,10 +38,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public final class SettingsActivity extends ThemedActivity {
+    private static final int HYPEROS_OP_HOME_SHORTCUTS = 10017;
     private static final int REQUEST_BACKGROUND_IMAGE = 4102;
     private PopupWindow selectionPopup;
     private Dialog appearancePicker;
     private TextView backgroundAction;
+    private TextView widgetPermissionStatus;
+    private UiKit.Palette widgetPermissionPalette;
 
     private interface Selection {
         void apply(int i);
@@ -94,6 +103,19 @@ public final class SettingsActivity extends ThemedActivity {
                 recreate();
             });
         });
+        AppWidgetManager widgets = AppWidgetManager.getInstance(this);
+        boolean canPinWidgets = widgets.isRequestPinAppWidgetSupported();
+        if (canPinWidgets && WidgetUi.usesHyperOsLauncher(this)) {
+            widgetPermissionPalette = palette;
+            widgetPermissionStatus = UiKit.text(this, "", 14f, palette.accent, true);
+            preferenceRow(linearLayoutPreferenceGroup, getString(R.string.widget_pin_permission),
+                    widgetPermissionStatus, palette).setOnClickListener(view -> openWidgetPermission());
+            TextView permissionPath = UiKit.text(this, getString(R.string.widget_pin_permission_path)
+                    + "\n" + getString(R.string.widget_pin_permission_path_en), 13f, palette.secondary, false);
+            int pathInset = UiKit.dp(this, 16f);
+            permissionPath.setPadding(pathInset, 0, pathInset, UiKit.dp(this, 10f));
+            linearLayoutPreferenceGroup.addView(permissionPath, row(-1, -2, 0));
+        }
         MiuixSwitch softGlassSwitch = new MiuixSwitch(this);
         softGlassSwitch.setContentDescription(getString(R.string.enable_soft_glass));
         softGlassSwitch.setChecked(ThemeManager.isSoftGlassEnabled(this));
@@ -104,6 +126,11 @@ public final class SettingsActivity extends ThemedActivity {
         LinearLayout opacityRow = glassOpacityRow(palette);
         opacityRow.setVisibility(softGlassSwitch.isChecked() ? View.VISIBLE : View.GONE);
         linearLayoutPreferenceGroup.addView(opacityRow);
+        if (canPinWidgets) {
+            TextView add = UiKit.text(this, getString(R.string.widget_pin_choose), 14f, palette.accent, true);
+            preferenceRow(linearLayoutPreferenceGroup, getString(R.string.widget_pin_title), add, palette)
+                    .setOnClickListener(view -> showWidgetPicker(widgets));
+        }
         addFontPreferences(linearLayoutPreferenceGroup, palette);
         TextView textViewText4 = UiKit.text(this, AppColors.NAMES[ThemeManager.getColorScheme(this)], 14.0f, palette.secondary, false);
         setPreferenceArrow(textViewText4, palette.secondary);
@@ -167,6 +194,105 @@ public final class SettingsActivity extends ThemedActivity {
         });
         linearLayout.requestApplyInsets();
         if (bundle == null) UiKit.animateIn(scrollView, 5.0f);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (widgetPermissionStatus == null) return;
+        int mode = widgetShortcutPermissionMode();
+        boolean granted = mode == AppOpsManager.MODE_ALLOWED;
+        widgetPermissionStatus.setText(granted ? R.string.widget_pin_permission_granted
+                : mode < 0 ? R.string.widget_pin_permission_check : R.string.widget_pin_permission_action);
+        widgetPermissionStatus.setTextColor(granted
+                ? (widgetPermissionPalette.night ? 0xff81d69a : 0xff187642) : widgetPermissionPalette.accent);
+    }
+
+    private int widgetShortcutPermissionMode() {
+        // HyperOS uses a vendor AppOp. Some builds expose the integer overload to apps.
+        AppOpsManager appOps = getSystemService(AppOpsManager.class);
+        if (appOps == null) return -1;
+        try {
+            return (Integer) AppOpsManager.class.getMethod("checkOpNoThrow",
+                    int.class, int.class, String.class)
+                    .invoke(appOps, HYPEROS_OP_HOME_SHORTCUTS, android.os.Process.myUid(), getPackageName());
+        } catch (ReflectiveOperationException | SecurityException unavailable) {
+            return -1;
+        }
+    }
+
+    private void openWidgetPermission() {
+        Intent editor = new Intent("miui.intent.action.APP_PERM_EDITOR")
+                .setPackage("com.miui.securitycenter").putExtra("extra_pkgname", getPackageName());
+        try {
+            startActivity(editor);
+        } catch (ActivityNotFoundException | SecurityException unavailable) {
+            startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.fromParts("package", getPackageName(), null)));
+        }
+        Toast.makeText(this, R.string.widget_pin_permission_path, Toast.LENGTH_LONG).show();
+    }
+
+    private void showWidgetPicker(AppWidgetManager manager) {
+        var providers = new java.util.ArrayList<>(manager.getInstalledProvidersForPackage(
+                getPackageName(), android.os.Process.myUserHandle()));
+        providers.removeIf(info -> info.provider.getClassName().contains("Blur"));
+        providers.sort(java.util.Comparator.comparing(info -> info.loadLabel(getPackageManager())));
+
+        UiKit.Palette palette = new UiKit.Palette(this);
+        Dialog dialog = new Dialog(this);
+        LinearLayout sheet = new LinearLayout(this);
+        sheet.setOrientation(LinearLayout.VERTICAL);
+        int inset = UiKit.dp(this, 16f);
+        sheet.setPadding(inset, inset, inset, inset);
+        sheet.setBackground(UiKit.rounded(palette.surface, UiKit.dp(this, MiuixMetrics.DIALOG_RADIUS)));
+        TextView title = UiKit.text(this, getString(R.string.widget_pin_title), 20f, palette.primary, true);
+        title.setAccessibilityHeading(true);
+        sheet.addView(title, row(-1, -2, 0));
+
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout list = new LinearLayout(this);
+        list.setOrientation(LinearLayout.VERTICAL);
+        scroll.addView(list, new ScrollView.LayoutParams(-1, -2));
+        LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(-1, -2, 1f);
+        scrollParams.topMargin = UiKit.dp(this, 12f);
+        sheet.addView(scroll, scrollParams);
+        for (var info : providers) {
+            TextView item = UiKit.text(this, info.loadLabel(getPackageManager()), 16f, palette.primary, false);
+            item.setGravity(Gravity.CENTER_VERTICAL);
+            item.setMinHeight(UiKit.dp(this, 48f));
+            item.setPadding(inset, UiKit.dp(this, 8f), inset, UiKit.dp(this, 8f));
+            item.setBackground(UiKit.interactiveBackground(this, palette.surfaceSoft, MiuixMetrics.CARD_RADIUS));
+            item.setOnClickListener(view -> {
+                dialog.dismiss();
+                requestWidgetPin(manager, info.provider);
+            });
+            list.addView(item, row(-1, -2, list.getChildCount() == 0 ? 0 : 4));
+        }
+        TextView close = UiKit.button(this, getString(R.string.widget_pin_close),
+                palette.accent, palette.accentSoft, MiuixMetrics.BUTTON_RADIUS);
+        close.setOnClickListener(view -> dialog.dismiss());
+        sheet.addView(close, row(-1, UiKit.dp(this, 44f), 12));
+        dialog.setContentView(sheet);
+        UiKit.configureDialog(dialog, palette);
+        dialog.show();
+        fitDialog(dialog, sheet);
+    }
+
+    private void requestWidgetPin(AppWidgetManager manager, ComponentName provider) {
+        if (widgetPermissionStatus != null) {
+            int mode = widgetShortcutPermissionMode();
+            if (mode >= 0 && mode != AppOpsManager.MODE_ALLOWED) {
+                openWidgetPermission();
+                return;
+            }
+        }
+        try {
+            if (manager.requestPinAppWidget(provider, null, null)) return;
+        } catch (IllegalStateException unavailable) {
+            // The app may have lost the foreground before pinning.
+        }
+        Toast.makeText(this, R.string.widget_pin_failed, Toast.LENGTH_LONG).show();
     }
 
     private View addFrostedPreference(LinearLayout group, UiKit.Palette palette) {
@@ -391,6 +517,10 @@ public final class SettingsActivity extends ThemedActivity {
         });
         UiKit.configureDialog(dialog, palette);
         dialog.show();
+        fitDialog(dialog, sheet);
+    }
+
+    private void fitDialog(Dialog dialog, View sheet) {
         WindowMetrics metrics = getWindowManager().getCurrentWindowMetrics();
         Insets safe = metrics.getWindowInsets().getInsetsIgnoringVisibility(
                 WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());

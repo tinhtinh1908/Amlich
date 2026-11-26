@@ -34,6 +34,12 @@ Thiết kế native tham khảo Miuix 0.9.4: góc squircle, kích thước compo
 kiểu chữ và màu mặc định được mô phỏng bằng Java/Android Views. Các thông số
 và nguồn đối chiếu nằm tại `licenses/miuix-native-design.md`.
 
+## Phiên bản 2.8 (versionCode 51)
+
+- Thêm đủ 8 mẫu widget từ **Cài đặt → Thêm widget ra màn hình chính** trong ứng dụng.
+- Khôi phục kính mềm và góc bo của widget trên launcher HyperOS hỗ trợ.
+- Trên HyperOS, bấm **Quyền thêm widget** rồi chọn **Quyền khác → Lối tắt màn hình chính → Luôn cho phép**. Nếu máy dùng tiếng Anh, chọn **Other permissions → Home screen shortcuts → Always allow**.
+
 ## Phiên bản 2.7 (versionCode 50)
 
 - Khôi phục danh sách widget Âm Lịch trong mục Widget Android trên HyperOS.

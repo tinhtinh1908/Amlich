@@ -37,12 +37,14 @@ final class WidgetUi {
         if (options.containsKey("widget_support_blur")) return options.getBoolean("widget_support_blur");
 
         // HyperOS releases that omit the widget option still report framework blur availability.
+        WindowManager windows = context.getSystemService(WindowManager.class);
+        return usesHyperOsLauncher(context) && windows != null && windows.isCrossWindowBlurEnabled();
+    }
+    static boolean usesHyperOsLauncher(Context context) {
         Intent home = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME);
         ResolveInfo launcher = context.getPackageManager().resolveActivity(home, PackageManager.MATCH_DEFAULT_ONLY);
-        WindowManager windows = context.getSystemService(WindowManager.class);
         return launcher != null && launcher.activityInfo != null
-                && "com.miui.home".equals(launcher.activityInfo.packageName)
-                && windows != null && windows.isCrossWindowBlurEnabled();
+                && "com.miui.home".equals(launcher.activityInfo.packageName);
     }
     static int width(AppWidgetManager manager, int id, int fallback) {
         Bundle options = manager.getAppWidgetOptions(id);

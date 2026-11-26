@@ -91,4 +91,14 @@
     <string name="widget_size_wide_month">Lịch tháng 4×2</string>
     <string name="widget_size_wide_week">Lịch tuần 4×2</string>
     <string name="widget_size_wide_day">Lịch ngày 4×1</string>
+    <string name="widget_pin_title">Thêm widget ra màn hình chính</string>
+    <string name="widget_pin_choose">Chọn</string>
+    <string name="widget_pin_permission">Quyền thêm widget</string>
+    <string name="widget_pin_permission_granted">Đã cấp</string>
+    <string name="widget_pin_permission_check">Kiểm tra</string>
+    <string name="widget_pin_permission_action">Cấp quyền</string>
+    <string name="widget_pin_permission_path">Chọn Quyền khác → Lối tắt màn hình chính → Luôn cho phép.</string>
+    <string name="widget_pin_permission_path_en">Other permissions → Home screen shortcuts → Always allow.</string>
+    <string name="widget_pin_close">Đóng</string>
+    <string name="widget_pin_failed">Màn hình chính không nhận yêu cầu thêm widget.</string>
 </resources>
