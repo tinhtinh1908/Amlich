@@ -1,17 +1,18 @@
 plugins {
-    id 'com.android.application' version '8.7.3'
+    id 'com.android.application' version '9.2.1'
+    id 'org.jetbrains.kotlin.plugin.compose' version '2.4.21'
 }
 
 android {
     namespace 'com.dtinh.lichviet'
-    compileSdk 34
+    compileSdk { version = release(37) { minorApiLevel = 2 } }
 
     defaultConfig {
         applicationId 'com.dtinh.lichviet'
         minSdk 30
         targetSdk 34
-        versionCode 48
-        versionName '2.5'
+        versionCode 49
+        versionName '2.6'
         multiDexEnabled false
     }
 
@@ -19,6 +20,7 @@ android {
         main {
             manifest.srcFile 'AndroidManifest.xml'
             java.srcDirs = ['src']
+            kotlin.directories.add('src')
             res.srcDirs = ['res']
             assets.srcDirs = ['assets']
         }
@@ -27,6 +29,7 @@ android {
 
     buildTypes {
         debug {
+            applicationIdSuffix = providers.gradleProperty('amlichAdbSuffix').getOrElse('')
             minifyEnabled false
         }
         release {
@@ -36,9 +39,11 @@ android {
         }
     }
 
+    buildFeatures { compose true; resValues true }
+
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     packaging {
@@ -50,4 +55,9 @@ android {
         checkReleaseBuilds true
         warningsAsErrors false
     }
+}
+
+dependencies {
+    implementation 'top.yukonga.miuix.kmp:miuix-glass-android:0.9.5-beta01'
+    implementation 'androidx.activity:activity-compose:1.10.1'
 }

@@ -4,14 +4,13 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
+import android.graphics.Rect;
 import android.graphics.Typeface;
-import android.graphics.drawable.Drawable;
 import android.util.LruCache;
 import android.view.MotionEvent;
 import android.view.View;
@@ -29,10 +28,6 @@ public final class CalendarMonthView extends View {
     private int accent;
     private int accentSoft;
     private int onAccent;
-    private int background;
-    private Bitmap backgroundImage;
-    private boolean customBackground;
-    private int controlDivider;
     private int controlPrimary;
     private int controlSecondary;
     private float cellWidth;
@@ -61,7 +56,6 @@ public final class CalendarMonthView extends View {
     private final float density;
     private final RectF detailPanel;
     private final Calendar displayed;
-    private int divider;
     private float downX;
     private float downY;
     private float gridBottom;
@@ -73,8 +67,9 @@ public final class CalendarMonthView extends View {
     private final RectF noteHitArea;
     private Set<String> noteKeys;
     private final Paint paint;
+    private boolean glassPanels;
     private final Path surfacePath = new Path();
-    private final Drawable noteIcon;
+    private boolean notePressed;
     private float rowHeight;
     private final Calendar selected;
     private ValueAnimator selectionAnimator;
@@ -117,8 +112,9 @@ public final class CalendarMonthView extends View {
         this.layoutMonth = Integer.MIN_VALUE;
         this.detailDate = Long.MIN_VALUE;
         this.detailTextAlpha = 255;
-        this.normalFont = Typeface.create(Typeface.DEFAULT, 0);
-        this.boldFont = Typeface.create(Typeface.DEFAULT, 1);
+        int font = ThemeManager.getFont(context);
+        this.normalFont = ThemeManager.font(context, font, Typeface.DEFAULT, Typeface.NORMAL);
+        this.boldFont = ThemeManager.font(context, font, Typeface.DEFAULT_BOLD, Typeface.BOLD);
         this.monthProgress = 1.0f;
         this.paint = new Paint(1);
         this.metrics = new Paint.FontMetrics();
@@ -130,7 +126,6 @@ public final class CalendarMonthView extends View {
         this.dayCells = new ArrayList(42);
         this.noteKeys = NoteRepository.snapshotKeys(context);
         this.notesRevision = NoteRepository.revision(context);
-        this.noteIcon = context.getDrawable(R.drawable.ic_note).mutate();
         this.detailPanel = new RectF();
         this.noteHitArea = new RectF();
         this.density = getResources().getDisplayMetrics().density;
@@ -139,34 +134,29 @@ public final class CalendarMonthView extends View {
         normalize(calendar);
         normalize(calendar2);
         normalize(this.today);
-        setBackgroundColor(this.background);
         setFocusable(true);
         setContentDescription("Lịch tháng Việt Nam");
     }
 
     private void loadPalette() {
-        UiKit.Palette palette = new UiKit.Palette(getContext());
-        this.background = palette.background;
+        boolean photo = BackgroundImageManager.hasBackground(getContext());
+        UiKit.Palette palette = glassPanels
+                ? UiKit.glassCalendarPalette(getContext(), photo) : new UiKit.Palette(getContext());
         this.surface = palette.surface;
         this.surfaceSoft = palette.surfaceSoft;
-        this.divider = palette.divider;
         this.textPrimary = palette.primary;
         this.textSecondary = palette.secondary;
         this.textMuted = palette.muted;
         this.controlPrimary = palette.primary;
         this.controlSecondary = palette.secondary;
-        this.controlDivider = palette.divider;
         this.accent = palette.accent;
         this.accentSoft = palette.accentSoft;
         this.onAccent = palette.onAccent;
         this.sunday = palette.danger;
-        this.customBackground = BackgroundImageManager.hasBackground(getContext());
-        if (this.customBackground) {
+        if (photo && !glassPanels) {
             UiKit.Palette palettePhotoPalette = UiKit.photoPalette(getContext());
-            this.background = palettePhotoPalette.background;
             this.surface = palettePhotoPalette.surface;
             this.surfaceSoft = palettePhotoPalette.surfaceSoft;
-            this.divider = palettePhotoPalette.divider;
             this.textPrimary = palettePhotoPalette.primary;
             this.textSecondary = palettePhotoPalette.secondary;
             this.textMuted = palettePhotoPalette.muted;
@@ -176,11 +166,9 @@ public final class CalendarMonthView extends View {
             if (!palettePhotoPalette.night) {
                 this.controlPrimary = palette.primary;
                 this.controlSecondary = Color.rgb(82, 88, 101);
-                this.controlDivider = Color.argb(78, 24, 27, 34);
             } else {
                 this.controlPrimary = palettePhotoPalette.primary;
                 this.controlSecondary = palettePhotoPalette.secondary;
-                this.controlDivider = palettePhotoPalette.divider;
             }
         }
     }
@@ -188,25 +176,7 @@ public final class CalendarMonthView extends View {
     public void refreshTheme() {
         this.detailDate = Long.MIN_VALUE;
         loadPalette();
-        reloadBackgroundImage(getWidth(), getHeight());
-        setBackgroundColor(this.background);
         invalidate();
-    }
-
-    @Override
-    protected void onSizeChanged(int i, int i2, int i3, int i4) {
-        super.onSizeChanged(i, i2, i3, i4);
-        if (i != i3 || i2 != i4) {
-            reloadBackgroundImage(i, i2);
-        }
-    }
-
-    private void reloadBackgroundImage(int i, int i2) {
-        Bitmap bitmapLoad = this.customBackground ? BackgroundImageManager.load(getContext(), i, i2) : null;
-        if (this.backgroundImage != null && this.backgroundImage != bitmapLoad && !this.backgroundImage.isRecycled()) {
-            this.backgroundImage.recycle();
-        }
-        this.backgroundImage = bitmapLoad;
     }
 
     public void setSystemInsets(int i, int i2) {
@@ -273,24 +243,42 @@ public final class CalendarMonthView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         calculateLayout();
-        drawCalendarBase(canvas);
-        drawDetailPanel(canvas, this.selected);
-    }
-
-    private void drawCalendarBase(Canvas canvas) {
-        this.paint.setStyle(Paint.Style.FILL);
-        if (this.backgroundImage != null && !this.backgroundImage.isRecycled()) {
-            BackgroundImageManager.drawCenterCrop(canvas, this.backgroundImage, new RectF(0.0f, 0.0f, getWidth(), getHeight()), this.paint);
-            this.paint.setColor(Color.argb(112, 0, 0, 0));
-            canvas.drawRect(0.0f, 0.0f, getWidth(), getHeight(), this.paint);
-        } else {
-            this.paint.setColor(this.background);
-            canvas.drawRect(0.0f, 0.0f, getWidth(), getHeight(), this.paint);
+        boolean useGlass = glassPanels && canvas.isHardwareAccelerated();
+        if (!useGlass) {
+            drawSurface(canvas, new RectF(dp(12f), insetTop, getWidth() - dp(12f), gridBottom + dp(4f)),
+                    dp(MiuixMetrics.CARD_RADIUS), surface);
         }
-        this.paint.setShader(null);
-        drawSurface(canvas, new RectF(dp(12.0f), this.insetTop, getWidth() - dp(12.0f), this.gridBottom + dp(4.0f)), dp(MiuixMetrics.CARD_RADIUS), this.surface);
         drawWeekdays(canvas);
         drawMonthGridTransition(canvas);
+        drawDetailPanel(canvas, selected, useGlass);
+    }
+
+    void setGlassPanels(boolean enabled) {
+        if (glassPanels == enabled) return;
+        glassPanels = enabled;
+        loadPalette();
+        invalidate();
+    }
+
+    void copyGlassPanelBounds(Rect grid, Rect detail) {
+        calculateLayout();
+        grid.set(Math.round(dp(12f)), insetTop, Math.round(getWidth() - dp(12f)), Math.round(gridBottom + dp(4f)));
+        if (detailPanel.height() < dp(100f)) detail.setEmpty();
+        else detailPanel.round(detail);
+    }
+
+    void copyNoteBounds(Rect bounds) {
+        noteHitArea.round(bounds);
+    }
+
+    boolean isNotePressed() {
+        return notePressed;
+    }
+
+    private void setNotePressed(boolean pressed) {
+        if (notePressed == pressed) return;
+        notePressed = pressed;
+        postInvalidateOnAnimation();
     }
 
     private void drawMonthGridTransition(Canvas canvas) {
@@ -315,7 +303,7 @@ public final class CalendarMonthView extends View {
         canvas.translate(f, 0.0f);
         int i = this.visibleRows;
         float f2 = this.rowHeight;
-        this.visibleRows = Math.max(5, Math.min(6, ((((calendar.get(7) + 5) % 7) + calendar.getActualMaximum(5)) + 6) / 7));
+        this.visibleRows = cachedCells(calendar).size() / 7;
         this.rowHeight = (this.gridBottom - this.gridTop) / this.visibleRows;
         drawMonthGrid(canvas, calendar, calendar2);
         this.visibleRows = i;
@@ -345,12 +333,22 @@ public final class CalendarMonthView extends View {
             this.layoutMonth = iMonthIndex;
             this.visibleRows = Math.max(5, Math.min(6, ((((this.displayed.get(7) + 5) % 7) + this.displayed.getActualMaximum(5)) + 6) / 7));
         }
-        float fDp = dp(216.0f);
-        float fDp2 = height - dp(8.0f);
-        float f2 = fDp2 - fDp;
-        this.rowHeight = Math.max(1.0f, ((f2 - dp(12.0f)) - this.gridTop) / this.visibleRows);
-        this.gridBottom = this.gridTop + (this.rowHeight * this.visibleRows);
-        this.detailPanel.set(dp(12.0f), f2, width - dp(12.0f), fDp2);
+        float detailHeight = dp(216f);
+        float detailBottom = height - dp(8f);
+        float gridSpace = detailBottom - detailHeight - dp(12f) - gridTop;
+        // Keep the compact five-row baseline for every month. Only cell height changes.
+        float extraGridSpace = Math.max(0f, gridSpace - dp(300f));
+        detailBottom -= Math.min(dp(56f), extraGridSpace * 0.34f);
+        float detailTop = detailBottom - detailHeight;
+        this.gridBottom = Math.max(gridTop + 6f, detailTop - dp(12f));
+        this.rowHeight = (gridBottom - gridTop) / visibleRows;
+        this.detailPanel.set(dp(12f), detailTop, width - dp(12f), detailBottom);
+        if (detailPanel.height() < dp(100f)) {
+            noteHitArea.setEmpty();
+        } else {
+            noteHitArea.set(detailPanel.left + dp(16f), detailPanel.top + dp(154f),
+                    detailPanel.right - dp(16f), detailPanel.bottom - dp(14f));
+        }
     }
 
     private void drawWeekdays(Canvas canvas) {
@@ -362,19 +360,18 @@ public final class CalendarMonthView extends View {
             canvas.drawText(str, this.gridLeft + (i * f) + (f / 2.0f), baselineCenter(this.weekTop, this.gridTop - this.weekTop), this.paint);
             i++;
         }
-        this.paint.setColor(this.divider);
-        this.paint.setStrokeWidth(dp(0.7f));
-        canvas.drawLine(dp(15.0f), this.gridTop - dp(1.0f), getWidth() - dp(15.0f), this.gridTop - dp(1.0f), this.paint);
     }
 
     private List<DayCell> cachedCells(Calendar calendar) {
-        int iMonthIndex = (monthIndex(calendar) * 10) + this.visibleRows;
+        int iMonthIndex = monthIndex(calendar);
         List<DayCell> arrayList = this.monthCells.get(Integer.valueOf(iMonthIndex));
         if (arrayList == null) {
-            arrayList = new ArrayList(this.visibleRows * 7);
+            int rows = Math.max(5, ((((calendar.get(Calendar.DAY_OF_WEEK) + 5) % 7)
+                    + calendar.getActualMaximum(Calendar.DAY_OF_MONTH)) + 6) / 7);
+            arrayList = new ArrayList<>(rows * 7);
             Calendar calendar2 = (Calendar) calendar.clone();
             calendar2.add(5, -((calendar2.get(7) + 5) % 7));
-            for (int i = 0; i < this.visibleRows * 7; i++) {
+            for (int i = 0; i < rows * 7; i++) {
                 Calendar calendar3 = (Calendar) calendar2.clone();
                 arrayList.add(new DayCell(calendar3, calendar3.get(2) == calendar.get(2) && calendar3.get(1) == calendar.get(1), new RectF(), NoteRepository.has(this.noteKeys, calendar3)));
                 calendar2.add(5, 1);
@@ -391,6 +388,19 @@ public final class CalendarMonthView extends View {
             int i3 = i % 7;
             this.dayCells.get(i).bounds.set(this.gridLeft + (i3 * this.cellWidth), this.gridTop + (i2 * this.rowHeight), this.gridLeft + ((i3 + 1) * this.cellWidth), this.gridTop + ((i2 + 1) * this.rowHeight));
         }
+    }
+
+    private float dayCellScale() {
+        return Math.min(1f, Math.min(rowHeight / dp(54f), (cellWidth - dp(6f)) / dp(42f)));
+    }
+
+    private float dayMarkerCenterY(float cellTop, float scale) {
+        return cellTop + Math.max(0f, (rowHeight - dp(54f)) / 2f) + dp(20f) * scale;
+    }
+
+    private float dayMarkerRadius(boolean selectedDay, float scale) {
+        float pulse = selectedDay ? (float) Math.sin(selectionPulse * Math.PI) * 2.2f : 0f;
+        return dp(18f + pulse) * scale;
     }
 
     private void drawDays(Canvas canvas, Calendar calendar) {
@@ -410,23 +420,18 @@ public final class CalendarMonthView extends View {
                 boolean zSameDate = sameDate(calendar2, this.today);
                 boolean zSameDate2 = sameDate(calendar2, calendar);
                 float fCenterX = next.bounds.centerX();
-                float fMin = Math.min(1.0f, Math.min(this.rowHeight / dp(50.0f), (this.cellWidth - dp(6.0f)) / dp(42.0f)));
+                float fMin = dayCellScale();
                 int iSave = canvas.save();
                 canvas.clipRect(next.bounds.left + dp(2.0f), next.bounds.top, next.bounds.right - dp(2.0f), next.bounds.bottom);
-                float fMax = Math.max(0.0f, (this.rowHeight - dp(50.0f)) / 2.0f);
-                float fDp = next.bounds.top + fMax + (dp(19.0f) * fMin);
-                float fDp2 = dp((zSameDate2 ? ((float) Math.sin(((double) this.selectionPulse) * 3.141592653589793d)) * 2.2f : 0.0f) + 18.0f) * fMin;
-                if (zSameDate) {
-                    it = it3;
+                float fMax = Math.max(0f, (rowHeight - dp(54f)) / 2f);
+                float fDp = dayMarkerCenterY(next.bounds.top, fMin);
+                float fDp2 = dayMarkerRadius(zSameDate2, fMin);
+                it = it3;
+                if (zSameDate || zSameDate2) {
                     this.paint.setStyle(Paint.Style.FILL);
-                    this.paint.setColor(this.accent);
+                    this.paint.setColor(zSameDate ? this.accent : this.accentSoft);
                     canvas.drawCircle(fCenterX, fDp, fDp2, this.paint);
-                } else {
-                    it = it3;
-                    if (zSameDate2) {
-                        this.paint.setStyle(Paint.Style.FILL);
-                        this.paint.setColor(this.accentSoft);
-                        canvas.drawCircle(fCenterX, fDp, fDp2, this.paint);
+                    if (!zSameDate) {
                         this.paint.setStyle(Paint.Style.STROKE);
                         this.paint.setStrokeWidth(dp(1.2f));
                         this.paint.setColor(this.accent);
@@ -440,7 +445,7 @@ public final class CalendarMonthView extends View {
                 } else {
                     i = calendar2.get(7) == 1 ? this.sunday : this.textPrimary;
                 }
-                setText(dp(18.0f) * fMin, i, 1, Paint.Align.CENTER);
+                setText(dp(19.5f) * fMin, i, 1, Paint.Align.CENTER);
                 canvas.drawText(next.solarLabel, fCenterX, baselineCenter(fDp - (dp(18.0f) * fMin), dp(36.0f) * fMin), this.paint);
                 if (!next.inDisplayedMonth) {
                     i2 = this.textMuted;
@@ -450,14 +455,16 @@ public final class CalendarMonthView extends View {
                     i2 = zSameDate ? this.accent : this.textSecondary;
                 }
                 setText(dp(9.8f) * Math.max(0.75f, fMin), i2, !str.isEmpty() ? 1 : 0, Paint.Align.CENTER);
-                canvas.drawText(fitText(next.shortLabel, this.cellWidth - dp(8.0f)), fCenterX, next.bounds.top + fMax + (dp(45.0f) * fMin), this.paint);
+                float lunarBaseline = Math.min(next.bounds.top + fMax + dp(51f) * fMin,
+                        next.bounds.bottom - dp(1f) - this.paint.descent());
+                canvas.drawText(fitText(next.shortLabel, this.cellWidth - dp(8f)), fCenterX, lunarBaseline, this.paint);
                 if (!str.isEmpty() && next.inDisplayedMonth) {
                     this.paint.setColor(zSameDate ? this.onAccent : this.sunday);
-                    canvas.drawCircle((dp(15.0f) * fMin) + fCenterX, fDp - (dp(13.0f) * fMin), dp(2.0f) * fMin, this.paint);
+                    canvas.drawCircle((dp(18f) * fMin) + fCenterX, fDp - (dp(13.0f) * fMin), dp(2.0f) * fMin, this.paint);
                 }
                 if (z && next.inDisplayedMonth) {
                     this.paint.setColor(zSameDate ? this.onAccent : this.accent);
-                    canvas.drawCircle(fCenterX - (dp(15.0f) * fMin), fDp - (dp(13.0f) * fMin), dp(2.0f) * fMin, this.paint);
+                    canvas.drawCircle(fCenterX - (dp(18f) * fMin), fDp - (dp(13.0f) * fMin), dp(2.0f) * fMin, this.paint);
                 }
                 canvas.restoreToCount(iSave);
                 it2 = it;
@@ -467,12 +474,11 @@ public final class CalendarMonthView extends View {
         }
     }
 
-    private void drawDetailPanel(Canvas canvas, Calendar calendar) {
-        this.noteHitArea.setEmpty();
+    private void drawDetailPanel(Canvas canvas, Calendar calendar, boolean useGlass) {
         if (this.detailPanel.height() < dp(100.0f)) {
             return;
         }
-        drawSurface(canvas, this.detailPanel, dp(MiuixMetrics.CARD_RADIUS), this.surface);
+        if (!useGlass) drawSurface(canvas, this.detailPanel, dp(MiuixMetrics.CARD_RADIUS), this.surface);
         int i = calendar.get(5);
         int i2 = calendar.get(2) + 1;
         int i3 = calendar.get(1);
@@ -480,7 +486,7 @@ public final class CalendarMonthView extends View {
             this.detailDate = calendar.getTimeInMillis();
             LunarCalendar.LunarDate lunarDateFromSolar = LunarCalendar.fromSolar(i, i2, i3);
             this.detailSolarDate = i + " tháng " + i2 + ", " + i3;
-            this.detailHoliday = HolidayUtil.getHoliday(i, i2, lunarDateFromSolar);
+            this.detailHoliday = HolidayUtil.getHoliday(i, i2, lunarDateFromSolar).toUpperCase(VIETNAMESE_LOCALE);
             this.detailNote = NoteRepository.get(getContext(), calendar);
             this.detailWeekday = capitalize(new SimpleDateFormat("EEEE", VIETNAMESE_LOCALE).format(calendar.getTime()));
             this.detailLunar = lunarDateFromSolar.day + " tháng " + lunarDateFromSolar.month + (lunarDateFromSolar.leap ? " nhuận" : "") + " · " + LunarCalendar.yearCanChi(lunarDateFromSolar.year);
@@ -493,7 +499,6 @@ public final class CalendarMonthView extends View {
         this.detailTextAlpha = Math.round(255.0f * (0.35f + (0.65f * f)));
         int iSave = canvas.save();
         canvas.clipRect(this.detailPanel);
-        canvas.translate(0.0f, dp(4.0f) * (1.0f - f));
         this.drawingDetailText = true;
         float fDp = this.detailPanel.left + dp(16.0f);
         float fDp2 = this.detailPanel.right - dp(16.0f);
@@ -504,10 +509,6 @@ public final class CalendarMonthView extends View {
         canvas.drawText(this.detailWeekday, fDp, f3 + dp(28.0f), this.paint);
         setText(dp(14.0f), this.controlSecondary, 0, Paint.Align.RIGHT);
         canvas.drawText(fitText(this.detailSolarDate, f2 * 0.62f), fDp2, f3 + dp(28.0f), this.paint);
-        this.paint.setColor(this.controlDivider);
-        this.paint.setAlpha(this.detailTextAlpha);
-        this.paint.setStrokeWidth(dp(0.7f));
-        canvas.drawLine(fDp, f3 + dp(40.0f), fDp2, f3 + dp(40.0f), this.paint);
         setText(dp(16.0f), this.controlPrimary, 1, Paint.Align.CENTER);
         canvas.drawText(fitText(this.detailLunar, f2), fCenterX, f3 + dp(68.0f), this.paint);
         float f4 = fDp + (f2 * 0.25f);
@@ -518,24 +519,18 @@ public final class CalendarMonthView extends View {
         setText(dp(15.0f), this.controlPrimary, 1, Paint.Align.CENTER);
         canvas.drawText(fitText(this.detailDayCycle, (f2 / 2.0f) - dp(8.0f)), f4, f3 + dp(110.0f), this.paint);
         canvas.drawText(fitText(this.detailMonthCycle, (f2 / 2.0f) - dp(8.0f)), f5, f3 + dp(110.0f), this.paint);
-        float fDp3 = f3 + dp(154.0f);
         if (!str.isEmpty()) {
-            setText(dp(14.0f), this.sunday, 1, Paint.Align.CENTER);
+            setText(dp(15.5f), this.sunday, 1, Paint.Align.CENTER);
             canvas.drawText(fitText(str, f2), fCenterX, f3 + dp(137.0f), this.paint);
         }
         this.drawingDetailText = false;
         canvas.restoreToCount(iSave);
-        this.noteHitArea.set(fDp, fDp3, fDp2, this.detailPanel.bottom - dp(14.0f));
-        drawSurface(canvas, this.noteHitArea, dp(MiuixMetrics.BUTTON_RADIUS), this.surfaceSoft);
-        setText(dp(14.0f), str2.isEmpty() ? this.controlSecondary : this.controlPrimary, str2.isEmpty() ? 0 : 1, Paint.Align.LEFT);
-        String strFitText = fitText(str2.isEmpty() ? "Thêm ghi chú" : str2, f2 - dp(58.0f));
-        float fDp4 = fCenterX - ((dp(28.0f) + this.paint.measureText(strFitText)) / 2.0f);
-        int iRound = Math.round(fDp4);
-        int iRound2 = Math.round(this.noteHitArea.centerY() - dp(9.0f));
-        this.noteIcon.setTint(this.controlSecondary);
-        this.noteIcon.setBounds(iRound, iRound2, iRound + Math.round(dp(18.0f)), iRound2 + Math.round(dp(18.0f)));
-        this.noteIcon.draw(canvas);
-        canvas.drawText(strFitText, fDp4 + dp(28.0f), baselineCenter(this.noteHitArea.top, this.noteHitArea.height()), this.paint);
+        if (!useGlass) drawSurface(canvas, this.noteHitArea, dp(MiuixMetrics.BUTTON_RADIUS), this.surfaceSoft);
+        setText(dp(14f), str2.isEmpty() && !useGlass ? this.controlSecondary : this.controlPrimary,
+                str2.isEmpty() ? 0 : 1, Paint.Align.CENTER);
+        String label = fitText(str2.isEmpty() ? "Thêm ghi chú" : str2, this.noteHitArea.width() - dp(32f));
+        canvas.drawText(label, this.noteHitArea.centerX(),
+                baselineCenter(this.noteHitArea.top, this.noteHitArea.height()), this.paint);
     }
 
     private void drawSurface(Canvas canvas, RectF rectF, float f, int i) {
@@ -558,10 +553,6 @@ public final class CalendarMonthView extends View {
         this.previousDisplayed = null;
         this.previousSelected = null;
         this.monthProgress = 1.0f;
-        if (this.backgroundImage != null && !this.backgroundImage.isRecycled()) {
-            this.backgroundImage.recycle();
-            this.backgroundImage = null;
-        }
         if (this.dragReturnAnimator != null) {
             this.dragReturnAnimator.cancel();
         }
@@ -584,6 +575,7 @@ public final class CalendarMonthView extends View {
                 this.dragMonth = null;
                 this.downX = motionEvent.getX();
                 this.downY = motionEvent.getY();
+                setNotePressed(this.noteHitArea.contains(this.downX, this.downY));
                 this.moved = false;
                 if (this.downY >= this.weekTop && this.downY <= this.gridBottom) {
                     Calendar calendar = (Calendar) this.displayed.clone();
@@ -595,6 +587,7 @@ public final class CalendarMonthView extends View {
                 }
                 return true;
             case 1:
+                setNotePressed(false);
                 if (this.dragging) {
                     if (Math.abs(this.dragOffset) >= Math.min(dp(62.0f), getWidth() * 0.18f)) {
                         changeMonth(this.dragDirection);
@@ -617,6 +610,7 @@ public final class CalendarMonthView extends View {
                 float y = motionEvent.getY() - this.downY;
                 if (Math.abs(x) > dp(8.0f) || Math.abs(y) > dp(8.0f)) {
                     this.moved = true;
+                    setNotePressed(false);
                 }
                 if (!this.dragging && this.downY >= this.weekTop && this.downY <= this.gridBottom && Math.abs(x) > dp(8.0f) && Math.abs(x) > Math.abs(y) * 1.35f) {
                     this.dragging = true;
@@ -638,6 +632,7 @@ public final class CalendarMonthView extends View {
                 }
                 return true;
             case 3:
+                setNotePressed(false);
                 if (this.dragging) {
                     returnDrag();
                 }

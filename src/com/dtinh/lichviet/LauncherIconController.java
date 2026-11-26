@@ -63,13 +63,13 @@ public final class LauncherIconController {
             return;
         }
         try {
-            packageManager.setComponentEnabledSetting(componentName, i, 1);
+            packageManager.setComponentEnabledSetting(componentName, i, PackageManager.DONT_KILL_APP);
         } catch (RuntimeException e) {
         }
     }
 
     private static void scheduleNextRefresh(Context context) {
-        AlarmManager alarmManager = (AlarmManager) context.getSystemService("alarm");
+        AlarmManager alarmManager = context.getSystemService(AlarmManager.class);
         if (alarmManager == null) {
             return;
         }
@@ -79,17 +79,17 @@ public final class LauncherIconController {
         calendar.set(12, 0);
         calendar.set(13, 0);
         calendar.set(14, 0);
-        PendingIntent broadcast = PendingIntent.getBroadcast(context, ALARM_REQUEST_CODE, new Intent(context, (Class<?>) LauncherIconReceiver.class).setAction(ACTION_REFRESH), 201326592);
+        PendingIntent broadcast = PendingIntent.getBroadcast(context, ALARM_REQUEST_CODE, new Intent(context, (Class<?>) LauncherIconReceiver.class).setAction(ACTION_REFRESH), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         long timeInMillis = calendar.getTimeInMillis();
         try {
             if (Build.VERSION.SDK_INT < LAST_DAY || alarmManager.canScheduleExactAlarms()) {
-                alarmManager.setExactAndAllowWhileIdle(0, timeInMillis, broadcast);
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, timeInMillis, broadcast);
                 return;
             }
         } catch (SecurityException e) {
         }
         try {
-            alarmManager.setWindow(1, timeInMillis, FALLBACK_WINDOW_MILLIS, broadcast);
+            alarmManager.setWindow(AlarmManager.RTC, timeInMillis, FALLBACK_WINDOW_MILLIS, broadcast);
         } catch (RuntimeException e2) {
         }
     }
@@ -140,7 +140,7 @@ public final class LauncherIconController {
                     return;
                 }
             }
-            list.add(new PackageManager.ComponentEnabledSetting(componentName, i, 1));
+            list.add(new PackageManager.ComponentEnabledSetting(componentName, i, PackageManager.DONT_KILL_APP));
         }
     }
 }

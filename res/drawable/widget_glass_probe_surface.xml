@@ -1,0 +1,4 @@
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:radius="@dimen/widget_probe_corner"/>
+    <solid android:color="#29686C74"/>
+</shape>

@@ -8,15 +8,23 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.os.Build;
 
 /** Single source of truth for app and widget appearance. */
 final class ThemeManager {
     static final int AUTO = 0;
     static final int LIGHT = 1;
     static final int DARK = 2;
+    static final int DEFAULT_GLASS_OPACITY = 50;
 
     private static final String PREFS = "appearance";
     private static final String KEY_MODE = "theme_mode";
+    private static final String KEY_FONT = "calendar_font";
+    private static final String[] SYSTEM_FONTS = {null, "serif", "sans-serif-condensed", "monospace"};
+    private static final int[] BUNDLED_FONTS = {
+            R.font.breeze, R.font.inter, R.font.be_vietnam, R.font.manrope, R.font.lora, R.font.nunito
+    };
 
     private ThemeManager() {}
 
@@ -32,6 +40,49 @@ final class ThemeManager {
     static void setColorScheme(Context context, int scheme) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putInt("color_scheme", AppColors.normalize(scheme)).apply();
         refreshWidgets(context);
+    }
+
+    static boolean isSoftGlassEnabled(Context context) {
+        return Build.VERSION.SDK_INT >= 33 && context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getBoolean("soft_glass", false);
+    }
+
+    static void setSoftGlassEnabled(Context context, boolean enabled) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .putBoolean("soft_glass", enabled).apply();
+        refreshWidgets(context);
+    }
+
+    static int getSoftGlassOpacity(Context context) {
+        int opacity = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getInt("soft_glass_opacity", DEFAULT_GLASS_OPACITY);
+        return Math.max(0, Math.min(100, opacity));
+    }
+
+    static void setSoftGlassOpacity(Context context, int opacity) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .putInt("soft_glass_opacity", opacity).apply();
+    }
+
+    static int getFont(Context context) {
+        int index = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY_FONT, 0);
+        return index >= 0 && index < SYSTEM_FONTS.length + BUNDLED_FONTS.length ? index : 0;
+    }
+
+    static void setFont(Context context, int index) {
+        SharedPreferences.Editor editor = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit();
+        if (index > 0 && index < SYSTEM_FONTS.length + BUNDLED_FONTS.length) editor.putInt(KEY_FONT, index);
+        else editor.remove(KEY_FONT);
+        editor.apply();
+    }
+
+    static Typeface font(Context context, int index, Typeface defaultFont, int style) {
+        if (index <= 0) return defaultFont;
+        if (index < SYSTEM_FONTS.length) return Typeface.create(SYSTEM_FONTS[index], style);
+        int bundled = index - SYSTEM_FONTS.length;
+        return bundled < BUNDLED_FONTS.length
+                ? Typeface.create(context.getResources().getFont(BUNDLED_FONTS[bundled]), style)
+                : defaultFont;
     }
 
     static boolean isMinimal(Context context) {
@@ -97,11 +148,12 @@ final class ThemeManager {
         refresh(context, VerticalDateWidgetProvider.class);
         refresh(context, TearCalendarWidgetProvider.class);
         refresh(context, HorizontalDateWidgetProvider.class);
-        refreshMonthWidget(context);
-    }
-
-    static void refreshMonthWidget(Context context) {
+        refresh(context, BlurEnabledWidget.class);
         refresh(context, MonthCalendarWidgetProvider.class);
+        refresh(context, CompactMonthCalendarWidgetProvider.class);
+        refresh(context, WideMonthCalendarWidgetProvider.class);
+        refresh(context, WideWeekCalendarWidgetProvider.class);
+        refresh(context, WideDayCalendarWidgetProvider.class);
     }
 
     private static void refresh(Context context, Class<?> provider) {

@@ -1,11 +1,11 @@
 package com.dtinh.lichviet;
 
 import android.animation.ValueAnimator;
-import android.app.Activity;
+import androidx.activity.ComponentActivity;
 import android.content.Context;
 import android.os.Bundle;
 
-abstract class ThemedActivity extends Activity {
+abstract class ThemedActivity extends ComponentActivity {
     ThemedActivity() {
     }
 

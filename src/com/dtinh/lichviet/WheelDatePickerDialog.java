@@ -85,7 +85,7 @@ public final class WheelDatePickerDialog extends Dialog {
             WindowManager.LayoutParams attributes = window.getAttributes();
             attributes.width = -1;
             attributes.height = -1;
-            attributes.gravity = 17;
+            attributes.gravity = android.view.Gravity.CENTER;
             attributes.dimAmount = this.colors.night ? 0.6f : 0.3f;
             window.setAttributes(attributes);
             View decorView = window.getDecorView();
@@ -94,7 +94,9 @@ public final class WheelDatePickerDialog extends Dialog {
                 if (windowInsetsController == null) {
                     return;
                 }
-                windowInsetsController.setSystemBarsAppearance(this.colors.night ? 0 : 24, 24);
+                int lightBars = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                        | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+                windowInsetsController.setSystemBarsAppearance(this.colors.night ? 0 : lightBars, lightBars);
             });
         }
         UiKit.configureDialog(this, this.colors);
@@ -102,9 +104,10 @@ public final class WheelDatePickerDialog extends Dialog {
 
     private View buildContent() {
         LinearLayout linearLayout = new LinearLayout(this.context);
-        linearLayout.setOrientation(1);
-        linearLayout.setPadding(dp(16.0f), dp(16.0f), dp(16.0f), dp(14.0f));
-        linearLayout.setBackground(UiKit.rounded(UiKit.dialogSurface(this.colors), dp(MiuixMetrics.DIALOG_RADIUS)));
+        linearLayout.setOrientation(LinearLayout.VERTICAL);
+        int cardInset = dp(yearOnly ? 12f : 16f);
+        linearLayout.setPadding(cardInset, cardInset, cardInset, dp(yearOnly ? 10f : 14f));
+        linearLayout.setBackground(UiKit.rounded(UiKit.dialogSurface(this.colors), dp(yearOnly ? 24f : MiuixMetrics.DIALOG_RADIUS)));
         this.cardView = linearLayout;
         this.preview = text("", 13.0f, this.colors.accent, 1);
         this.preview.setGravity(17);
@@ -124,7 +127,7 @@ public final class WheelDatePickerDialog extends Dialog {
             linearLayout.addView(view, layoutParams);
         }
         LinearLayout linearLayout2 = new LinearLayout(this.context);
-        linearLayout2.setOrientation(0);
+        linearLayout2.setOrientation(LinearLayout.HORIZONTAL);
         if (this.yearOnly) {
             linearLayout2.addView(label("Năm"), weighted());
         } else {
@@ -135,11 +138,11 @@ public final class WheelDatePickerDialog extends Dialog {
         linearLayout.addView(linearLayout2, matchWrap());
         LinearLayout linearLayout3 = new LinearLayout(this.context);
         linearLayout3.setGravity(17);
-        linearLayout3.setOrientation(0);
+        linearLayout3.setOrientation(LinearLayout.HORIZONTAL);
         float fMin = Math.min(96.0f, Math.max(80.0f, (this.context.getResources().getDisplayMetrics().heightPixels / this.density) * 0.28f));
         this.yearPicker = picker();
         if (this.yearOnly) {
-            linearLayout3.addView(pickerColumn(this.yearPicker), weightedHeight(fMin));
+            linearLayout3.addView(pickerColumn(this.yearPicker), weightedHeight(78f));
         } else {
             this.dayPicker = picker();
             this.monthPicker = picker();
@@ -150,10 +153,10 @@ public final class WheelDatePickerDialog extends Dialog {
         linearLayout.addView(linearLayout3, matchWrap());
         configurePickers();
         LinearLayout linearLayout4 = new LinearLayout(this.context);
-        linearLayout4.setOrientation(0);
+        linearLayout4.setOrientation(LinearLayout.HORIZONTAL);
         linearLayout4.setGravity(17);
         LinearLayout.LayoutParams layoutParamsMatchWrap2 = matchWrap();
-        layoutParamsMatchWrap2.topMargin = dp(12.0f);
+        layoutParamsMatchWrap2.topMargin = dp(yearOnly ? 7f : 12f);
         TextView textViewActionButton = actionButton("Hủy", this.colors.primary, this.colors.surfaceSoft);
         textViewActionButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -190,7 +193,7 @@ public final class WheelDatePickerDialog extends Dialog {
         linearLayout.setClickable(true);
         linearLayout.setOnClickListener(view3 -> {
         });
-        frameLayout.addView(linearLayout, new FrameLayout.LayoutParams(Math.min(dp(280.0f), this.context.getResources().getDisplayMetrics().widthPixels - dp(32.0f)), -2, 17));
+        frameLayout.addView(linearLayout, new FrameLayout.LayoutParams(Math.min(dp(yearOnly ? 216f : 280f), this.context.getResources().getDisplayMetrics().widthPixels - dp(32f)), -2, 17));
         return frameLayout;
     }
 
@@ -257,7 +260,7 @@ public final class WheelDatePickerDialog extends Dialog {
         numberPicker.setWrapSelectorWheel(true);
         numberPicker.setBackgroundColor(0);
         numberPicker.setTextColor(this.colors.primary);
-        numberPicker.setTextSize(TypedValue.applyDimension(2, 16.0f, this.context.getResources().getDisplayMetrics()));
+        numberPicker.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 16.0f, this.context.getResources().getDisplayMetrics()));
         numberPicker.setSelectionDividerHeight(0);
         tintChildren(numberPicker);
         return numberPicker;

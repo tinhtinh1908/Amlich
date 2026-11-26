@@ -15,17 +15,22 @@ import android.graphics.RectF;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
+import android.util.AtomicFile;
 import android.util.Size;
 import android.view.View;
 import android.widget.RemoteViews;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 /** Stores and renders the user-selected calendar background. */
 final class BackgroundImageManager {
     private static final String PREFS = "calendar_background";
     private static final String KEY_URI = "image_uri";
     private static final String KEY_FROSTED = "frosted_controls";
+    private static final String IMPORTED_IMAGE = "calendar-background-image";
 
     private BackgroundImageManager() {}
 
@@ -48,7 +53,7 @@ final class BackgroundImageManager {
         ThemeManager.refreshWidgets(context);
     }
 
-    static boolean setBackground(Context context, Uri uri, int intentFlags) {
+    static boolean setBackground(Context context, Uri uri) {
         if (uri == null) return false;
         try (ParcelFileDescriptor descriptor = context.getContentResolver()
                 .openFileDescriptor(uri, "r")) {
@@ -56,18 +61,35 @@ final class BackgroundImageManager {
         } catch (IOException | SecurityException ignored) {
             return false;
         }
-        int flags = intentFlags & (Intent.FLAG_GRANT_READ_URI_PERMISSION
-                | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        Uri durableUri;
         try {
-            context.getContentResolver().takePersistableUriPermission(uri, flags);
-        } catch (SecurityException ignored) {
-            // Some document providers grant a durable read URI without exposing
-            // the persistable flag. The URI is still stored and validated below.
+            context.getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            durableUri = uri;
+        } catch (SecurityException unavailable) {
+            durableUri = copyToAppStorage(context, uri);
+            if (durableUri == null) return false;
         }
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .edit().putString(KEY_URI, uri.toString()).putLong("revision", revision(context) + 1).apply();
+                .edit().putString(KEY_URI, durableUri.toString()).putLong("revision", revision(context) + 1).apply();
         ThemeManager.refreshWidgets(context);
         return true;
+    }
+
+    private static Uri copyToAppStorage(Context context, Uri source) {
+        AtomicFile destination = new AtomicFile(new File(context.getFilesDir(), IMPORTED_IMAGE));
+        FileOutputStream output = null;
+        try (InputStream input = context.getContentResolver().openInputStream(source)) {
+            if (input == null) return null;
+            output = destination.startWrite();
+            byte[] buffer = new byte[8192];
+            int count;
+            while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+            destination.finishWrite(output);
+            return Uri.fromFile(destination.getBaseFile());
+        } catch (IOException | SecurityException failure) {
+            if (output != null) destination.failWrite(output);
+            return null;
+        }
     }
 
     static void clearBackground(Context context) {
@@ -88,8 +110,10 @@ final class BackgroundImageManager {
         String value = uriValue(context);
         if (value.isEmpty() || targetWidth <= 0 || targetHeight <= 0) return null;
         try {
-            ImageDecoder.Source source = ImageDecoder.createSource(
-                    context.getContentResolver(), Uri.parse(value));
+            Uri uri = Uri.parse(value);
+            ImageDecoder.Source source = "file".equals(uri.getScheme())
+                    ? ImageDecoder.createSource(new File(context.getFilesDir(), IMPORTED_IMAGE))
+                    : ImageDecoder.createSource(context.getContentResolver(), uri);
             return ImageDecoder.decodeBitmap(source, (decoder, info, source1) -> {
                 Size size = info.getSize();
                 float scale = Math.min(1.0f, Math.max(

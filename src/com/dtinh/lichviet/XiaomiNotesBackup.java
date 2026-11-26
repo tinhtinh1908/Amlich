@@ -59,18 +59,18 @@ public final class XiaomiNotesBackup {
         try {
             CharSequence charSequenceExtra = intent.getCharSequenceExtra("android.intent.extra.TEXT");
             if (charSequenceExtra == null || charSequenceExtra.toString().indexOf(PREFIX) < 0) {
-                Toast.makeText(activity, R.string.backup_invalid_share, FORMAT_VERSION).show();
+                Toast.makeText(activity, R.string.backup_invalid_share, Toast.LENGTH_LONG).show();
                 return true;
             }
             String string = charSequenceExtra.toString();
             if (string.length() > MAX_SHARED_CHARS) {
-                Toast.makeText(activity, R.string.backup_too_large, FORMAT_VERSION).show();
+                Toast.makeText(activity, R.string.backup_too_large, Toast.LENGTH_LONG).show();
                 return true;
             }
             showRestoreDialog(activity, string, runnable);
             return true;
         } catch (RuntimeException e) {
-            Toast.makeText(activity, R.string.backup_invalid_share, FORMAT_VERSION).show();
+            Toast.makeText(activity, R.string.backup_invalid_share, Toast.LENGTH_LONG).show();
             return true;
         }
     }
@@ -79,9 +79,9 @@ public final class XiaomiNotesBackup {
         final Map<String, String> mapExportAll = NoteRepository.exportAll(activity);
         if (mapExportAll.isEmpty()) {
             wipe(cArr);
-            Toast.makeText(activity, R.string.backup_no_notes, FORMAT_VERSION).show();
+            Toast.makeText(activity, R.string.backup_no_notes, Toast.LENGTH_LONG).show();
         } else {
-            Toast.makeText(activity, R.string.backup_creating, 0).show();
+            Toast.makeText(activity, R.string.backup_creating, Toast.LENGTH_SHORT).show();
             BACKGROUND.execute(new Runnable() {
                 @Override
                 public final void run() {
@@ -123,7 +123,7 @@ public final class XiaomiNotesBackup {
     }
 
     private static void decryptAndConfirm(final Activity activity, final String str, final char[] cArr, final Runnable runnable) {
-        Toast.makeText(activity, R.string.restore_decrypting, 0).show();
+        Toast.makeText(activity, R.string.restore_decrypting, Toast.LENGTH_SHORT).show();
         BACKGROUND.execute(new Runnable() {
             @Override
             public final void run() {
@@ -171,10 +171,10 @@ public final class XiaomiNotesBackup {
             try {
                 activity.startActivity(Intent.createChooser(intent, activity.getString(R.string.backup_share_chooser)));
             } catch (RuntimeException e2) {
-                Toast.makeText(activity, R.string.backup_share_failed, FORMAT_VERSION).show();
+                Toast.makeText(activity, R.string.backup_share_failed, Toast.LENGTH_LONG).show();
             }
         } catch (RuntimeException e3) {
-            Toast.makeText(activity, R.string.backup_share_failed, FORMAT_VERSION).show();
+            Toast.makeText(activity, R.string.backup_share_failed, Toast.LENGTH_LONG).show();
         }
     }
 
@@ -325,7 +325,7 @@ public final class XiaomiNotesBackup {
         post(activity, new Runnable() {
             @Override
             public final void run() {
-                Toast.makeText(activity, i, XiaomiNotesBackup.FORMAT_VERSION).show();
+                Toast.makeText(activity, i, Toast.LENGTH_LONG).show();
             }
         });
     }

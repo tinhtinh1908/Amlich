@@ -62,4 +62,33 @@
     <string name="support_qr_saved">Đã lưu QR vào Ảnh/LichViet</string>
     <string name="support_qr_save_failed">Không thể lưu mã QR</string>
     <string name="widget_size_2x2">Lịch xé 2×2</string>
+    <string name="widget_size_month_2x2">Lịch tháng 2×2</string>
+    <string name="enable_soft_glass">Bật kính mềm</string>
+    <string name="soft_glass_opacity">Độ đục kính</string>
+    <string name="soft_glass_opacity_percent">%1$d%%</string>
+    <string name="calendar_font">Phông chữ</string>
+    <string name="calendar_font_reset">Đặt lại phông chữ</string>
+    <string name="calendar_font_reset_action">Đặt lại</string>
+    <string-array name="calendar_font_choices">
+        <item>Mặc định</item>
+        <item>Có chân</item>
+        <item>Chữ hẹp</item>
+        <item>Đơn cách</item>
+        <item>Breeze Sans (Samsung)</item>
+        <item>Inter</item>
+        <item>Be Vietnam Pro</item>
+        <item>Manrope</item>
+        <item>Lora</item>
+        <item>Nunito</item>
+    </string-array>
+    <string name="note_date_context">%1$s  ·  Âm lịch %2$d/%3$d</string>
+    <string name="note_lunar_leap"> nhuận</string>
+    <string name="note_character_count">%1$d/%2$d</string>
+    <string name="background_picker_unavailable">Máy không có bộ chọn ảnh</string>
+    <string name="background_frost">Nền mờ</string>
+    <string name="appearance_colors">Màu sắc</string>
+    <string name="appearance_font_sample">Thứ 26</string>
+    <string name="widget_size_wide_month">Lịch tháng 4×2</string>
+    <string name="widget_size_wide_week">Lịch tuần 4×2</string>
+    <string name="widget_size_wide_day">Lịch ngày 4×1</string>
 </resources>

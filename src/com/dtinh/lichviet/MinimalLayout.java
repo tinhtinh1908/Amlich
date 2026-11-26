@@ -49,7 +49,7 @@ final class MinimalLayout {
         int iMin3 = Math.min(Math.round(12.0f * f), Math.min(this.paper.width(), this.paper.height()) / 18);
         int i5 = this.paper.top + iMin3;
         int i6 = this.paper.bottom - iMin3;
-        int[] iArr = {30, 146, 30, 30, 96, 36, 44, 24, 86, 44};
+        int[] iArr = {31, 137, 32, 34, 98, 39, 46, 25, 93, 45};
         int i7 = MONTH;
         int length = iArr.length;
         for (int i8 = MONTH; i8 < length; i8 += DAY) {

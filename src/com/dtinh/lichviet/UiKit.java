@@ -89,16 +89,19 @@ final class UiKit {
     }
 
     static Palette photoPalette(Context context) {
-        int i;
-        Palette palette = new Palette(context);
-        boolean zIsFrostedEnabled = BackgroundImageManager.isFrostedEnabled(context);
-        int i2 = palette.surface;
-        if (zIsFrostedEnabled) {
-            i = palette.night ? 190 : 222;
-        } else {
-            i = 255;
-        }
-        return new Palette(palette.night, palette.background, withAlpha(i2, i), withAlpha(palette.surfaceSoft, zIsFrostedEnabled ? 210 : 255), palette.divider, -1, -2236963, palette.muted, palette.accent, palette.accentSoft, palette.danger, palette.onAccent);
+        return photoPalette(new Palette(context), BackgroundImageManager.isFrostedEnabled(context));
+    }
+
+    static Palette glassCalendarPalette(Context context, boolean photo) {
+        Palette base = new Palette(ThemeManager.getColorScheme(context), true);
+        return photo ? photoPalette(base, true) : base;
+    }
+
+    private static Palette photoPalette(Palette palette, boolean frosted) {
+        int surfaceAlpha = frosted ? (palette.night ? 190 : 222) : 255;
+        return new Palette(palette.night, palette.background, withAlpha(palette.surface, surfaceAlpha),
+                withAlpha(palette.surfaceSoft, frosted ? 210 : 255), palette.divider, Color.WHITE,
+                0xffdddddd, palette.muted, palette.accent, palette.accentSoft, palette.danger, palette.onAccent);
     }
 
     private static int withAlpha(int i, int i2) {
@@ -136,7 +139,7 @@ final class UiKit {
     static void animateChildren(ViewGroup viewGroup) {
         for (int i = 0; i < viewGroup.getChildCount(); i++) {
             View childAt = viewGroup.getChildAt(i);
-            if (childAt.getVisibility() == 0) {
+            if (childAt.getVisibility() == View.VISIBLE) {
                 animateContent(childAt, 0.0f, 5.0f, ((long) Math.min(i, 4)) * 18);
             }
         }
@@ -146,20 +149,20 @@ final class UiKit {
         view.animate().withEndAction(null).cancel();
         view2.animate().withEndAction(null).cancel();
         if (!ValueAnimator.areAnimatorsEnabled()) {
-            view.setVisibility(8);
-            view2.setVisibility(0);
+            view.setVisibility(View.GONE);
+            view2.setVisibility(View.VISIBLE);
             view.setAlpha(1.0f);
             view2.setAlpha(1.0f);
             view.setTranslationX(0.0f);
             view2.setTranslationX(0.0f);
             return;
         }
-        view.setVisibility(0);
-        view2.setVisibility(0);
+        view.setVisibility(View.VISIBLE);
+        view2.setVisibility(View.VISIBLE);
         view2.setAlpha(0.4f);
         view2.setTranslationX(dp(view2.getContext(), 8.0f) * i);
         view.animate().alpha(0.0f).translationX((-dp(view.getContext(), 8.0f)) * i).setStartDelay(0L).setDuration(180L).setInterpolator(MOTION_EASING).withLayer().withEndAction(() -> {
-            view.setVisibility(8);
+            view.setVisibility(View.GONE);
             view.setAlpha(1.0f);
             view.setTranslationX(0.0f);
         }).start();
@@ -316,7 +319,9 @@ final class UiKit {
         View decorView = window.getDecorView();
         WindowInsetsController windowInsetsController = decorView.getWindowInsetsController();
         if (windowInsetsController != null) {
-            windowInsetsController.setSystemBarsAppearance(z || palette.night ? 0 : 24, 24);
+            int lightBars = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                    | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+            windowInsetsController.setSystemBarsAppearance(z || palette.night ? 0 : lightBars, lightBars);
         } else {
             decorView.setSystemUiVisibility(z || palette.night ? 0 : 8208);
         }
@@ -328,7 +333,9 @@ final class UiKit {
         textView.setTextSize(f);
         textView.setTextColor(i);
         textView.setIncludeFontPadding(false);
-        textView.setTypeface(Typeface.create(z ? "sans-serif-medium" : "sans-serif", 0));
+        textView.setTypeface(ThemeManager.font(context, ThemeManager.getFont(context),
+                Typeface.create(z ? "sans-serif-medium" : "sans-serif", Typeface.NORMAL),
+                z ? Typeface.BOLD : Typeface.NORMAL));
         return textView;
     }
 
@@ -351,7 +358,7 @@ final class UiKit {
         editText.setHintTextColor(palette.secondary);
         editText.setTextColor(palette.primary);
         editText.setTextSize(MiuixMetrics.BODY_TEXT);
-        editText.setTypeface(Typeface.create("sans-serif", 0));
+        editText.setTypeface(ThemeManager.font(context, ThemeManager.getFont(context), Typeface.DEFAULT, Typeface.NORMAL));
         editText.setSingleLine(z);
         int iDp = dp(context, FIELD_RADIUS);
         int iDp2 = dp(context, 12.0f);

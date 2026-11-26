@@ -7,6 +7,7 @@ public final class MainActivity extends ThemedActivity {
     private CalendarMonthView calendarView;
     private int appliedThemeMode;
     private int appliedColorScheme;
+    private int appliedFont;
     private CalendarTabsView tabs;
     private MinimalCalendarView minimalView;
     private boolean appliedMinimal;
@@ -17,6 +18,7 @@ public final class MainActivity extends ThemedActivity {
         super.onCreate(bundle);
         this.appliedThemeMode = ThemeManager.getMode(this);
         this.appliedColorScheme = ThemeManager.getColorScheme(this);
+        this.appliedFont = ThemeManager.getFont(this);
         this.appliedBackgroundRevision = BackgroundImageManager.revision(this);
         this.calendarView = new CalendarMonthView(this);
         if (bundle != null && bundle.containsKey("selected_date")) {
@@ -30,7 +32,8 @@ public final class MainActivity extends ThemedActivity {
             this.tabs = new CalendarTabsView(this, this.calendarView, bundle);
             setContentView(this.tabs);
         }
-        UiKit.applySystemBars(this, new UiKit.Palette(this), !this.appliedMinimal && BackgroundImageManager.hasBackground(this));
+        UiKit.applySystemBars(this, new UiKit.Palette(this), ThemeManager.isSoftGlassEnabled(this)
+                || BackgroundImageManager.hasBackground(this));
         UiKit.animateIn(this.appliedMinimal ? this.minimalView : this.tabs, 8.0f);
         if (bundle == null) {
             applyIntent(getIntent());
@@ -89,12 +92,14 @@ public final class MainActivity extends ThemedActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (this.appliedThemeMode != ThemeManager.getMode(this) || this.appliedColorScheme != ThemeManager.getColorScheme(this) || this.appliedMinimal != ThemeManager.isMinimal(this)) {
+        if (this.appliedThemeMode != ThemeManager.getMode(this) || this.appliedColorScheme != ThemeManager.getColorScheme(this) || this.appliedMinimal != ThemeManager.isMinimal(this)
+                || this.appliedFont != ThemeManager.getFont(this)) {
             recreate();
             return;
         }
         LauncherIconController.arm(this);
         if (this.minimalView != null) {
+            this.minimalView.refreshGlassPreference();
             this.minimalView.refresh();
         }
         CalendarMonthView calendarMonthView = this.calendarView;
@@ -109,9 +114,11 @@ public final class MainActivity extends ThemedActivity {
             }
             calendarMonthView.refreshToday();
             if (this.tabs != null) {
+                this.tabs.refreshGlassPreference();
                 this.tabs.refreshToday();
             }
-            UiKit.applySystemBars(this, new UiKit.Palette(this), !this.appliedMinimal && BackgroundImageManager.hasBackground(this));
+            UiKit.applySystemBars(this, new UiKit.Palette(this), ThemeManager.isSoftGlassEnabled(this)
+                    || BackgroundImageManager.hasBackground(this));
         }
     }
     @Override protected void onDestroy() {

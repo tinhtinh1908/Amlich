@@ -4,6 +4,7 @@
     <color name="white">#ffffffff</color>
     <color name="widget_blue">#ff3482ff</color>
     <color name="widget_blue_dark">#ff3482ff</color>
+    <color name="widget_today_marker">#ff2e65dc</color>
     <color name="widget_divider">#ffe0e0e0</color>
     <color name="widget_muted">#ffa2a2a2</color>
     <color name="widget_secondary">#ff666666</color>

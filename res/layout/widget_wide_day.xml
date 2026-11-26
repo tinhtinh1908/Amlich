@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background" android:layout_width="match_parent"
+    android:layout_height="match_parent" android:background="@drawable/widget_glass_probe_surface"
+    android:clipToOutline="true">
+    <ImageView android:id="@id/month_widget_background_image" android:layout_width="match_parent"
+        android:layout_height="match_parent" android:scaleType="fitXY" android:visibility="gone"
+        android:contentDescription="@null" />
+    <LinearLayout android:id="@+id/widget_content_surface" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:orientation="horizontal" android:gravity="center_vertical" android:baselineAligned="false"
+        android:paddingStart="16dp" android:paddingEnd="16dp">
+        <TextClock android:id="@id/wide_calendar_day" android:layout_width="0dp"
+            android:layout_height="match_parent" android:layout_weight="1" android:gravity="center"
+            android:format12Hour="HH:mm" android:format24Hour="HH:mm" android:includeFontPadding="false"
+            android:fontFamily="sans-serif-medium" android:maxLines="1" android:textSize="42sp"
+            android:autoSizeTextType="uniform" android:autoSizeMinTextSize="28sp"
+            android:autoSizeMaxTextSize="42sp" android:autoSizeStepGranularity="1sp" />
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:layout_marginStart="22dp" android:orientation="vertical"
+            android:gravity="center">
+            <TextView android:id="@id/wide_calendar_caption" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textSize="11sp" android:gravity="center"
+                android:maxLines="1" android:ellipsize="end" />
+            <TextView android:id="@id/wide_calendar_weekday" android:layout_width="match_parent"
+                android:layout_height="21dp" android:gravity="center" android:textSize="16sp"
+                android:textStyle="bold" android:maxLines="1" android:includeFontPadding="false"
+                android:autoSizeTextType="uniform" android:autoSizeMinTextSize="11sp"
+                android:autoSizeMaxTextSize="16sp" android:autoSizeStepGranularity="1sp" />
+            <TextView android:id="@id/wide_calendar_lunar" android:layout_width="match_parent"
+                android:layout_height="15dp" android:textSize="11sp" android:gravity="center"
+                android:maxLines="1" android:includeFontPadding="false"
+                android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp"
+                android:autoSizeMaxTextSize="11sp" android:autoSizeStepGranularity="1sp" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

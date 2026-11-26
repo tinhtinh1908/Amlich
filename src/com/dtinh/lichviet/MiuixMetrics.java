@@ -6,8 +6,6 @@ final class MiuixMetrics {
     static final float BUTTON_RADIUS = 16f;
     static final float DIALOG_RADIUS = 32f;
     static final float POPUP_RADIUS = 16f;
-    static final float TAB_RADIUS = 8f;
-    static final float TAB_OUTER_RADIUS = 13f;
     static final float BUTTON_MIN_HEIGHT = 40f;
     static final float CONTENT_INSET = 16f;
     static final float BODY_TEXT = 17f;

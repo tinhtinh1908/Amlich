@@ -15,10 +15,12 @@ import android.graphics.PorterDuffColorFilter;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.os.Build;
 import android.text.SpannableString;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.RelativeSizeSpan;
 import android.text.style.StyleSpan;
+import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -32,11 +34,15 @@ import java.util.List;
 import java.util.Locale;
 
 final class MinimalCalendarView extends ViewGroup {
+    private static final int MAX_TORN_PAGE_PIXELS = 1_800_000;
     private static final Locale VI = new Locale("vi", "VN");
     private final SimpleDateFormat weekdayFormat;
     private final Activity activity;
     private final CalendarMonthView calendar;
     private final UiKit.Palette colors;
+    private final UiKit.Palette glassColors;
+    private final TearCalendarGlassLayer glassLayer;
+    private boolean glassEnabled;
     private final View paper;
     private final View separator;
     private final TextView settings;
@@ -86,14 +92,14 @@ final class MinimalCalendarView extends ViewGroup {
     private long backgroundRevision = Long.MIN_VALUE;
     private int backgroundWidth, backgroundHeight, backgroundGeneration;
 
-    private int primaryText() { return backgroundImage == null ? colors.primary : 0xffffffff; }
-    private int secondaryText() { return backgroundImage == null ? colors.secondary : 0xffe0e5ed; }
-    private int accentText() { return backgroundImage == null ? colors.accent : 0xffafcfff; }
-    private int holidayText() { return backgroundImage == null ? colors.danger : 0xffffadb4; }
+    private int primaryText() { return glassEnabled ? glassColors.primary : backgroundImage == null ? colors.primary : 0xffffffff; }
+    private int secondaryText() { return glassEnabled ? 0xffe0e5ed : backgroundImage == null ? colors.secondary : 0xffe0e5ed; }
+    private int accentText() { return glassEnabled ? glassColors.accent : backgroundImage == null ? colors.accent : 0xffafcfff; }
+    private int holidayText() { return glassEnabled ? glassColors.danger : backgroundImage == null ? colors.danger : 0xffffadb4; }
     private int paperFill() { return backgroundImage == null ? colors.surface : 0x55000000; }
     private int softFill() { return backgroundImage == null ? colors.surfaceSoft : 0x66000000; }
     private int controlFill() { return backgroundImage == null ? colors.accentSoft : 0x99000000; }
-    private int dividerColor() { return backgroundImage == null ? colors.divider : 0x30ffffff; }
+    private int dividerColor() { return glassEnabled ? 0x30ffffff : backgroundImage == null ? colors.divider : 0x30ffffff; }
 
     @Override protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
@@ -131,36 +137,59 @@ final class MinimalCalendarView extends ViewGroup {
     private void replaceBackground(Bitmap image) {
         Bitmap old = backgroundImage; backgroundImage = image;
         if (old != null && old != image) old.recycle();
-        paper.setBackground(UiKit.rounded(paperFill(), dp(MiuixMetrics.CARD_RADIUS)));
-        today.setTextColor(accentText());
-        today.setBackground(UiKit.interactiveBackground(activity, controlFill(), 16));
-        settings.setBackground(UiKit.interactiveBackground(activity, paperFill(), 16));
+        restyleSurfaces();
+        refresh();
+        invalidate();
+    }
+
+    void refreshGlassPreference() {
+        if (Build.VERSION.SDK_INT < 33 || glassLayer == null) return;
+        boolean enabled = ThemeManager.isSoftGlassEnabled(activity);
+        glassLayer.updateOpacity(ThemeManager.getSoftGlassOpacity(activity));
+        glassLayer.setVisibility(enabled ? VISIBLE : GONE);
+        if (enabled == glassEnabled) return;
+        glassEnabled = enabled;
+        restyleSurfaces();
+        invalidate();
+    }
+
+    private void restyleSurfaces() {
+        paper.setBackground(glassEnabled ? null : UiKit.rounded(paperFill(), dp(MiuixMetrics.CARD_RADIUS)));
+        today.setTextColor(glassEnabled ? primaryText() : accentText());
+        today.setBackground(glassEnabled ? null : UiKit.interactiveBackground(activity, controlFill(), 16));
+        settings.setBackground(glassEnabled ? null : UiKit.interactiveBackground(activity, paperFill(), 16));
         UiKit.setIcon(settings, R.drawable.ic_settings, primaryText(), 18);
-        weekday.setTextColor(accentText());
-        weekday.setBackground(UiKit.rounded(controlFill(), dp(10)));
+        weekday.setTextColor(glassEnabled ? primaryText() : accentText());
+        weekday.setBackground(glassEnabled ? null : UiKit.rounded(controlFill(), dp(10)));
         separator.setBackgroundColor(dividerColor());
         for (TextView label : new TextView[]{monthTitle,dayLabel,monthLabel,yearLabel,lunarLabel,lunarMonth,hourTitle}) label.setTextColor(secondaryText());
         for (TextView value : new TextView[]{dayCycle,monthCycle,yearCycle,lunarDay,term,opposite,note}) value.setTextColor(primaryText());
         holiday.setTextColor(holidayText());
         for (int i = 0; i < hourBackgrounds.length; i++) {
-            hourBackgrounds[i].setBackground(UiKit.rounded(softFill(), dp(6)));
+            hourBackgrounds[i].setBackground(glassEnabled ? null : UiKit.rounded(softFill(), dp(6)));
             hourNames[i].setTextColor(primaryText()); hourRanges[i].setTextColor(secondaryText());
         }
-        note.setBackground(UiKit.interactiveBackground(activity, softFill(), 16));
-        refresh(); invalidate();
+        note.setBackground(glassEnabled ? null : UiKit.interactiveBackground(activity, softFill(), 16));
+        if (Build.VERSION.SDK_INT >= 33 && glassLayer != null) glassLayer.updateBackdrop(glassColors.surface);
     }
-    private void drawPhoto(Canvas canvas) {
-        if (backgroundImage == null) return;
+
+    void drawCalendarBackdrop(Canvas canvas, boolean shadePhoto) {
+        if (backgroundImage == null) {
+            canvas.drawColor(glassEnabled ? glassColors.background : colors.background);
+            return;
+        }
         backgroundBounds.set(0, 0, getWidth(), getHeight());
         backgroundPaint.setAlpha(255);
         BackgroundImageManager.drawCenterCrop(canvas, backgroundImage, backgroundBounds, backgroundPaint);
-        backgroundPaint.setColor(0x70000000);
-        canvas.drawRect(backgroundBounds, backgroundPaint);
-        backgroundPaint.setAlpha(255);
+        if (shadePhoto) {
+            backgroundPaint.setColor(0x70000000);
+            canvas.drawRect(backgroundBounds, backgroundPaint);
+            backgroundPaint.setAlpha(255);
+        }
     }
     @Override protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        drawPhoto(canvas);
+        drawCalendarBackdrop(canvas, !glassEnabled);
     }
 
     MinimalCalendarView(Activity activity, CalendarMonthView calendarMonthView) {
@@ -178,14 +207,14 @@ final class MinimalCalendarView extends ViewGroup {
         this.activity = activity;
         this.calendar = calendarMonthView;
         this.colors = new UiKit.Palette(activity);
-        setBackgroundColor(this.colors.background);
+        this.glassColors = UiKit.glassCalendarPalette(activity, false);
         setWillNotDraw(false);
         this.paper = new View(activity);
         this.paper.setBackground(UiKit.rounded(paperFill(), dp(MiuixMetrics.CARD_RADIUS)));
         addView(this.paper);
         this.today = button("Hôm nay", accentText(), controlFill());
-        this.today.setTextSize(14.0f);
-        this.today.setPadding(dp(12.0f), 0, dp(12.0f), 0);
+        this.today.setAutoSizeTextTypeUniformWithConfiguration(11, 16, 1, TypedValue.COMPLEX_UNIT_SP);
+        this.today.setPadding(dp(8f), 0, dp(8f), 0);
         this.today.setOnClickListener(view -> {
             showDate(Calendar.getInstance());
         });
@@ -198,7 +227,7 @@ final class MinimalCalendarView extends ViewGroup {
         });
         setClickable(true);
         setContentDescription("Lịch xé. Kéo tờ lịch để xé sang ngày tiếp theo.");
-        this.monthTitle = text("", 17, secondaryText(), true, 17, 1);
+        this.monthTitle = text("", 20, secondaryText(), true, 17, 1);
         this.monthTitle.setContentDescription("Chọn ngày");
         this.monthTitle.setClickable(true);
         this.monthTitle.setFocusable(true);
@@ -206,35 +235,37 @@ final class MinimalCalendarView extends ViewGroup {
             chooseDate();
         });
         this.solarDay = text("", 150, primaryText(), true, 17, 1);
-        this.solarDay.setTypeface(Typeface.create("sans-serif-condensed", 1));
-        this.weekday = text("", 18, accentText(), true, 17, 1);
+        this.solarDay.setTypeface(ThemeManager.font(activity, ThemeManager.getFont(activity),
+                Typeface.create("sans-serif-condensed", Typeface.BOLD), Typeface.BOLD));
+        this.weekday = text("", 22, accentText(), true, 17, 1);
         this.weekday.setBackground(UiKit.rounded(controlFill(), dp(10.0f)));
-        this.holiday = text("", 13, holidayText(), true, 17, 2);
-        this.dayLabel = text("Ngày", 12, secondaryText(), false, 8388627, 1);
-        this.monthLabel = text("Tháng", 12, secondaryText(), false, 8388627, 1);
-        this.yearLabel = text("Năm", 12, secondaryText(), false, 8388627, 1);
-        this.dayCycle = text("", 15, primaryText(), true, 8388627, 1);
-        this.monthCycle = text("", 15, primaryText(), true, 8388627, 1);
-        this.yearCycle = text("", 15, primaryText(), true, 8388627, 1);
-        this.lunarLabel = text("ÂM LỊCH", 10, secondaryText(), true, 17, 1);
-        this.lunarDay = text("", 54, primaryText(), true, 17, 1);
-        this.lunarMonth = text("", 12, secondaryText(), false, 17, 1);
+        this.holiday = text("", 16, holidayText(), true, 17, 2);
+        this.dayLabel = text("Ngày", 14, secondaryText(), false, 8388627, 1);
+        this.monthLabel = text("Tháng", 14, secondaryText(), false, 8388627, 1);
+        this.yearLabel = text("Năm", 14, secondaryText(), false, 8388627, 1);
+        this.dayCycle = text("", 18, primaryText(), true, 8388627, 1);
+        this.monthCycle = text("", 18, primaryText(), true, 8388627, 1);
+        this.yearCycle = text("", 18, primaryText(), true, 8388627, 1);
+        this.lunarLabel = text("ÂM LỊCH", 13, secondaryText(), true, 17, 1);
+        this.lunarDay = text("", 60, primaryText(), true, 17, 1);
+        this.lunarMonth = text("", 15, secondaryText(), false, 17, 1);
         this.separator = new View(activity);
         this.separator.setBackgroundColor(dividerColor());
         addView(this.separator);
-        this.guardian = text("", 14, accentText(), false, 17, 2);
-        this.term = text("", 14, primaryText(), false, 17, 2);
-        this.opposite = text("", 14, primaryText(), false, 17, 2);
-        this.hourTitle = text("GIỜ HOÀNG ĐẠO", 11, secondaryText(), true, 17, 1);
+        this.guardian = text("", 17, accentText(), false, 17, 2);
+        this.term = text("", 17, primaryText(), false, 17, 2);
+        this.opposite = text("", 17, primaryText(), false, 17, 2);
+        this.hourTitle = text("GIỜ HOÀNG ĐẠO", 14, secondaryText(), true, 17, 1);
         for (int i = 0; i < this.hourNames.length; i++) {
             this.hourBackgrounds[i] = new View(activity);
             this.hourBackgrounds[i].setBackground(UiKit.rounded(softFill(), dp(6.0f)));
             addView(this.hourBackgrounds[i]);
-            this.hourNames[i] = text("", 13, primaryText(), true, 17, 1);
-            this.hourRanges[i] = text("", 11, secondaryText(), false, 17, 1);
-            this.hourRanges[i].setTypeface(Typeface.create("sans-serif", 0));
+            this.hourNames[i] = text("", 16, primaryText(), true, 17, 1);
+            this.hourRanges[i] = text("", 14, secondaryText(), false, 17, 1);
+            this.hourRanges[i].setTypeface(ThemeManager.font(activity, ThemeManager.getFont(activity),
+                    Typeface.DEFAULT, Typeface.NORMAL));
         }
-        this.note = text("", 13, primaryText(), false, 17, 2);
+        this.note = text("", 16, primaryText(), false, 17, 2);
         this.note.setBackground(UiKit.interactiveBackground(activity, softFill(), 16.0f));
         this.note.setClickable(true);
         this.note.setFocusable(true);
@@ -242,6 +273,11 @@ final class MinimalCalendarView extends ViewGroup {
         this.note.setOnClickListener(view4 -> {
             NoteEditorDialog.show(activity, selected(), this::refresh);
         });
+        glassLayer = Build.VERSION.SDK_INT >= 33
+                ? new TearCalendarGlassLayer(this, paper, today, settings, weekday, note, hourBackgrounds)
+                : null;
+        if (glassLayer != null) addView(glassLayer, 0);
+        refreshGlassPreference();
         refresh();
     }
 
@@ -257,7 +293,11 @@ final class MinimalCalendarView extends ViewGroup {
         int size = View.MeasureSpec.getSize(i);
         int size2 = View.MeasureSpec.getSize(i2);
         setMeasuredDimension(size, size2);
-        MinimalLayout minimalLayout = new MinimalLayout(Math.max(1, (size - getPaddingLeft()) - getPaddingRight()), Math.max(1, (size2 - getPaddingTop()) - getPaddingBottom()), getResources().getDisplayMetrics().density, this.holiday.getVisibility() != 8);
+        if (glassLayer != null) {
+            glassLayer.measure(MeasureSpec.makeMeasureSpec(size, MeasureSpec.EXACTLY),
+                    MeasureSpec.makeMeasureSpec(size2, MeasureSpec.EXACTLY));
+        }
+        MinimalLayout minimalLayout = new MinimalLayout(Math.max(1, (size - getPaddingLeft()) - getPaddingRight()), Math.max(1, (size2 - getPaddingTop()) - getPaddingBottom()), getResources().getDisplayMetrics().density, this.holiday.getVisibility() != View.GONE);
         this.placements.clear();
         place(this.paper, minimalLayout.paper, 0.0f, 0.0f, 1.0f, 1.0f);
         int paddingLeft = getPaddingLeft() + minimalLayout.header.right;
@@ -298,7 +338,7 @@ final class MinimalCalendarView extends ViewGroup {
         }
         place(this.note, minimalLayout.rows[9], 0.0f, 0.12f, 1.0f, 1.0f);
         for (Placement placement : this.placements) {
-            placement.view.measure(View.MeasureSpec.makeMeasureSpec(placement.right - placement.left, 1073741824), View.MeasureSpec.makeMeasureSpec(placement.bottom - placement.top, 1073741824));
+            placement.view.measure(View.MeasureSpec.makeMeasureSpec(placement.right - placement.left, MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(placement.bottom - placement.top, MeasureSpec.EXACTLY));
         }
     }
 
@@ -310,6 +350,7 @@ final class MinimalCalendarView extends ViewGroup {
 
     @Override
     protected void onLayout(boolean z, int i, int i2, int i3, int i4) {
+        if (glassLayer != null) glassLayer.layout(0, 0, i3 - i, i4 - i2);
         for (Placement placement : this.placements) {
             placement.view.layout(placement.left, placement.top, placement.right, placement.bottom);
         }
@@ -351,10 +392,9 @@ final class MinimalCalendarView extends ViewGroup {
         this.opposite.setText(labeledValue("Chi xung ngày", TraditionalCalendar.opposingBranch(lunarDateFromSolar), primaryText()));
         String holiday = HolidayUtil.getHoliday(i, i2, lunarDateFromSolar);
         this.holiday.setText(holiday);
-        this.holiday.setVisibility(holiday.isEmpty() ? 8 : 0);
+        this.holiday.setVisibility(holiday.isEmpty() ? View.GONE : View.VISIBLE);
         String str2 = NoteRepository.get(this.activity, calendarSelected);
         this.note.setText(str2.isEmpty() ? "Thêm ghi chú" : str2);
-        UiKit.setIcon(this.note, R.drawable.ic_note, primaryText(), 18);
         this.note.setContentDescription("Ghi chú ngày " + i + "/" + i2 + ". " + (str2.isEmpty() ? "Chạm để thêm ghi chú" : str2));
         List<String> listAuspiciousHours = TraditionalCalendar.auspiciousHours(lunarDateFromSolar);
         for (int i4 = 0; i4 < this.hourNames.length; i4++) {
@@ -362,7 +402,7 @@ final class MinimalCalendarView extends ViewGroup {
             int iIndexOf = str3.indexOf(10);
             String[] strArrSplit = str3.substring(iIndexOf + 1).replace("h", "").split("–");
             this.hourNames[i4].setText(str3.substring(0, iIndexOf));
-            this.hourRanges[i4].setText(strArrSplit[0] + ":00–" + strArrSplit[1] + ":00");
+            this.hourRanges[i4].setText(strArrSplit[0] + ":00 - " + strArrSplit[1] + ":00");
             this.hourNames[i4].setContentDescription("Giờ " + str3.substring(0, iIndexOf));
         }
         requestLayout();
@@ -489,12 +529,12 @@ final class MinimalCalendarView extends ViewGroup {
         }
         this.originalDate = this.calendar.getSelectedDateMillis();
         this.tornBounds.set(this.paper.getLeft(), this.paper.getTop(), this.paper.getRight(), this.paper.getBottom());
-        if (ValueAnimator.areAnimatorsEnabled() && this.paper.getWidth() > 0 && this.paper.getHeight() > 0) {
-            this.tornPage = Bitmap.createBitmap(this.paper.getWidth(), this.paper.getHeight(), Bitmap.Config.ARGB_8888);
-            Canvas canvas = new Canvas(this.tornPage);
-            canvas.translate(-this.paper.getLeft(), -this.paper.getTop());
-            drawPhoto(canvas);
-            super.dispatchDraw(canvas);
+        boolean animate = ValueAnimator.areAnimatorsEnabled() && paper.getWidth() > 0 && paper.getHeight() > 0;
+        if (animate) {
+            captureTornPage();
+        } else if (tornPage != null) {
+            tornPage.recycle();
+            tornPage = null;
         }
         this.tearing = true;
         this.tearCommitted = false;
@@ -503,6 +543,23 @@ final class MinimalCalendarView extends ViewGroup {
         this.calendar.showDateImmediately(calendarSelected.getTimeInMillis());
         refresh();
         return true;
+    }
+
+    private void captureTornPage() {
+        int paperWidth = paper.getWidth(), paperHeight = paper.getHeight();
+        float scale = Math.min(1f, (float) Math.sqrt(MAX_TORN_PAGE_PIXELS / (double) (paperWidth * (long) paperHeight)));
+        int width = Math.max(1, Math.round(paperWidth * scale));
+        int height = Math.max(1, Math.round(paperHeight * scale));
+        if (tornPage == null || tornPage.getWidth() != width || tornPage.getHeight() != height) {
+            if (tornPage != null) tornPage.recycle();
+            tornPage = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        }
+        Canvas canvas = new Canvas(tornPage);
+        canvas.scale(width / (float) paperWidth, height / (float) paperHeight);
+        canvas.translate(-paper.getLeft(), -paper.getTop());
+        drawCalendarBackdrop(canvas, !glassEnabled);
+        if (glassEnabled) drawTornPageSurfaces(canvas);
+        super.dispatchDraw(canvas);
     }
 
     private void settleTear(final boolean z) {
@@ -544,11 +601,30 @@ final class MinimalCalendarView extends ViewGroup {
         }
         this.tearing = false;
         this.tearProgress = 0.0f;
-        if (this.tornPage != null) {
-            this.tornPage.recycle();
-            this.tornPage = null;
-        }
         invalidate();
+    }
+
+    // The old page is flattened only while it curls. Its bitmap uses the same photo and
+    // stationary colors, while the newly revealed page stays on the live GPU glass layer.
+    private void drawTornPageSurfaces(Canvas canvas) {
+        int saved = canvas.save();
+        drawTornSurface(canvas, paper, dp(MiuixMetrics.CARD_RADIUS), 0x78242424);
+        drawTornSurface(canvas, weekday, weekday.getHeight() / 2f, 0x351c2538);
+        drawTornSurface(canvas, note, note.getHeight() / 2f, 0x351c2538);
+        for (View hour : hourBackgrounds) drawTornSurface(canvas, hour, dp(6f), 0x351c2538);
+        canvas.restoreToCount(saved);
+    }
+
+    private void drawTornSurface(Canvas canvas, View view, float radius, int color) {
+        backgroundPaint.setColor(color);
+        canvas.drawRoundRect(view.getLeft(), view.getTop(), view.getRight(), view.getBottom(),
+                radius, radius, backgroundPaint);
+    }
+
+    @Override
+    protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
+        if (child == glassLayer && !canvas.isHardwareAccelerated()) return false;
+        return super.drawChild(canvas, child, drawingTime);
     }
 
     @Override
@@ -610,6 +686,10 @@ final class MinimalCalendarView extends ViewGroup {
         if (this.tearing) {
             finishTear(this.tearCommitted);
         }
+        if (tornPage != null) {
+            tornPage.recycle();
+            tornPage = null;
+        }
         for (int i = 0; i < getChildCount(); i++) {
             View childAt = getChildAt(i);
             childAt.animate().cancel();
@@ -623,7 +703,7 @@ final class MinimalCalendarView extends ViewGroup {
 
     private CharSequence labeledValue(String str, String str2, int i) {
         SpannableString spannableString = new SpannableString(str + "\n" + str2);
-        spannableString.setSpan(new RelativeSizeSpan(0.78f), 0, str.length(), 33);
+        spannableString.setSpan(new RelativeSizeSpan(0.84f), 0, str.length(), 33);
         spannableString.setSpan(new ForegroundColorSpan(secondaryText()), 0, str.length(), 33);
         spannableString.setSpan(new StyleSpan(1), str.length() + 1, spannableString.length(), 33);
         spannableString.setSpan(new ForegroundColorSpan(i), str.length() + 1, spannableString.length(), 33);
@@ -634,7 +714,7 @@ final class MinimalCalendarView extends ViewGroup {
         TextView textViewText = UiKit.text(this.activity, str, i, i2, z);
         textViewText.setGravity(i3);
         textViewText.setMaxLines(i4);
-        textViewText.setBreakStrategy(0);
+        textViewText.setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_SIMPLE);
         textViewText.setAutoSizeTextTypeUniformWithConfiguration(4, i, 1, 2);
         addView(textViewText);
         return textViewText;

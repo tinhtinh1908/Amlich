@@ -17,10 +17,8 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Verify Android SDK on runner
-        run: |
-          test -d "$ANDROID_HOME/platforms/android-34"
-          test -x "$ANDROID_HOME/build-tools/34.0.0/aapt2"
+      - name: Install Android SDK platform
+        run: sdkmanager "platforms;android-37.2"
       - uses: gradle/actions/setup-gradle@v4
       - name: Run native calendar and animation regression checks
         run: python3 tools/run_tests.py
@@ -52,13 +50,13 @@ jobs:
       - name: Upload installable test APK
         uses: actions/upload-artifact@v4
         with:
-          name: AmLichViet-2.5-vc48-debug
+          name: AmLichViet-2.6-vc49-debug
           path: build/outputs/apk/debug/*.apk
           if-no-files-found: error
       - name: Upload unsigned release APK
         uses: actions/upload-artifact@v4
         with:
-          name: AmLichViet-2.5-vc48-release-unsigned
+          name: AmLichViet-2.6-vc49-release-unsigned
           path: build/outputs/apk/release/*.apk
           if-no-files-found: error
       - name: Upload lint report

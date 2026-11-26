@@ -8,7 +8,6 @@ import android.content.Context;
 import android.content.ContentValues;
 import android.net.Uri;
 import android.provider.MediaStore;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.IOException;
 import android.view.Gravity;
@@ -139,12 +138,11 @@ final class SupportDialog {
                 metadata.put(MediaStore.Images.Media.IS_PENDING, 1);
                 output = context.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, metadata);
                 if (output == null) throw new IOException("Cannot create image");
-                try (InputStream input = context.getResources().openRawResource(R.drawable.donate_vietqr);
-                     OutputStream stream = context.getContentResolver().openOutputStream(output)) {
-                    if (stream == null) throw new IOException("Cannot open image");
-                    byte[] buffer = new byte[8192];
-                    int count;
-                    while ((count = input.read(buffer)) != -1) stream.write(buffer, 0, count);
+                try (OutputStream stream = context.getContentResolver().openOutputStream(output)) {
+                    if (stream == null || !(context.getDrawable(R.drawable.donate_vietqr) instanceof BitmapDrawable qr)
+                            || !qr.getBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)) {
+                        throw new IOException("Cannot write image");
+                    }
                 }
                 metadata.clear();
                 metadata.put(MediaStore.Images.Media.IS_PENDING, 0);

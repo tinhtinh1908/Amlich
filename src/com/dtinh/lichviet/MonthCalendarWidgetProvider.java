@@ -5,15 +5,19 @@ import android.appwidget.AppWidgetProvider;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.os.Bundle;
+import android.os.Build;
 import android.view.View;
 import android.widget.RemoteViews;
 import java.util.Calendar;
 import java.util.Set;
 
 /** Compact 3x3 calendar. Full navigation is available by opening any date. */
-public final class MonthCalendarWidgetProvider extends AppWidgetProvider {
+public class MonthCalendarWidgetProvider extends AppWidgetProvider {
+    protected boolean isCompact() { return false; }
+    protected boolean isWeek() { return false; }
+    protected boolean isDay() { return false; }
+    protected boolean isWideMonth() { return false; }
     private static final int[] DAY_IDS = {
         R.id.month_day_01,
         R.id.month_day_02,
@@ -131,40 +135,98 @@ public final class MonthCalendarWidgetProvider extends AppWidgetProvider {
         super.onReceive(context, intent);
         if (isRefreshAction(intent.getAction())) refreshAllWidgets(context);
     }
-    private static void render(Context context, AppWidgetManager manager, int id) {
+    private void render(Context context, AppWidgetManager manager, int id) {
         Calendar today = Calendar.getInstance();
         Calendar month = (Calendar) today.clone(); month.set(Calendar.DAY_OF_MONTH, 1);
-        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.month_calendar_widget);
+        RemoteViews views = new RemoteViews(context.getPackageName(),
+                isDay() ? R.layout.widget_wide_day
+                        : isWeek() ? R.layout.widget_wide_week : R.layout.month_calendar_widget);
+        boolean glass = WidgetUi.useNativeGlass(context, manager, id);
         int mode = ThemeManager.resolvedMode(context);
-        ThemeManager.WidgetStyle colors = ThemeManager.monthWidgetStyle(context, mode);
-        boolean photo = BackgroundImageManager.applyToWidget(context, manager, id, views,
-                R.id.month_widget_background_image, R.id.month_widget_frame, colors.background);
-        if (!photo) {
-            colors = ThemeManager.widgetStyleForMode(context, mode);
-            WidgetUi.surface(context, views, R.id.month_widget_frame, R.id.month_widget_background_image,
-                    WidgetUi.width(manager, id, 220), WidgetUi.height(manager, id, 220), WidgetUi.colors(context)[1]);
+        ThemeManager.WidgetStyle plain = ThemeManager.widgetStyleForMode(context, mode);
+        ThemeManager.WidgetStyle colors = glass
+                ? new ThemeManager.WidgetStyle(android.R.color.transparent,
+                WidgetUi.GLASS_TEXT, WidgetUi.GLASS_TEXT, 0xffcbd5e4,
+                WidgetUi.CALENDAR_RED, context.getColor(R.color.widget_today_marker), WidgetUi.GLASS_TEXT)
+                : plain;
+        boolean horizontalTime = isDay() || isWeek();
+        if (glass) {
+            views.setViewVisibility(R.id.month_widget_background_image, View.GONE);
+            views.setImageViewResource(R.id.month_widget_background_image, 0);
+        } else {
+            int width = WidgetUi.width(manager, id, horizontalTime ? 320 : 220);
+            int height = WidgetUi.height(manager, id, isDay() ? 64 : isWeek() ? 110 : 220);
+            boolean photo = BackgroundImageManager.applyToWidget(context, manager, id, views,
+                    R.id.month_widget_background_image, R.id.widget_content_surface, plain.background,
+                    width, height, 72);
+            if (photo) {
+                colors = ThemeManager.monthWidgetStyle(context, mode);
+            } else if (!horizontalTime) {
+                WidgetUi.surface(views, R.id.month_widget_background_image, width, height,
+                        WidgetUi.colors(context)[1], 24);
+            }
+            views.setInt(R.id.widget_content_surface, "setBackgroundResource",
+                    photo && horizontalTime ? android.R.color.transparent : colors.background);
         }
-        for (int i = 0; i < WEEKDAY_IDS.length; i++) views.setTextColor(WEEKDAY_IDS[i],
-                i == 6 ? colors.sunday : colors.secondary);
-        Calendar date = (Calendar) month.clone();
+        if (glass) views.setInt(R.id.widget_content_surface, "setBackgroundResource", android.R.color.transparent);
+        if (Build.VERSION.SDK_INT >= 31) {
+            views.setViewOutlinePreferredRadiusDimen(android.R.id.background, R.dimen.widget_probe_corner);
+        }
+        views.setBoolean(android.R.id.background, "setClipToOutline", true);
+        if (isDay() || isWeek() || isWideMonth()) {
+            bindSummary(views, today, colors);
+        }
+        if (isDay()) {
+            views.setOnClickPendingIntent(android.R.id.background, WidgetUi.open(context, today));
+            manager.updateAppWidget(id, views);
+            return;
+        }
+        if (isWideMonth()) views.setViewVisibility(R.id.wide_month_summary, View.VISIBLE);
+        if (isCompact()) {
+            int padding = Math.round(10 * context.getResources().getDisplayMetrics().density);
+            views.setViewPadding(R.id.month_widget_root, padding, padding, padding, padding);
+            if (Build.VERSION.SDK_INT >= 31) {
+                views.setViewLayoutHeight(R.id.month_weekday_row, 16, android.util.TypedValue.COMPLEX_UNIT_DIP);
+            }
+        }
+        for (int i = 0; i < WEEKDAY_IDS.length; i++) {
+            views.setTextColor(WEEKDAY_IDS[i], i == 6 ? colors.sunday : colors.secondary);
+        }
+        Calendar date = (Calendar) (isWeek() ? today : month).clone();
         int offset = (date.get(Calendar.DAY_OF_WEEK) + 5) % 7;
         date.add(Calendar.DAY_OF_MONTH, -offset);
-        int rows = Math.max(5, (offset + month.getActualMaximum(Calendar.DAY_OF_MONTH) + 6) / 7);
-        views.setViewVisibility(R.id.month_row_6, rows == 6 ? View.VISIBLE : View.GONE);
-        Bitmap marker = WidgetUi.circle(colors.accent);
+        int monthEnd = offset + month.getActualMaximum(Calendar.DAY_OF_MONTH);
+        if (!isWeek()) {
+            int rows = (monthEnd + 6) / 7;
+            views.setViewVisibility(R.id.month_row_5, !isWideMonth() || rows >= 5 ? View.VISIBLE : View.GONE);
+            views.setViewVisibility(R.id.month_row_6, rows == 6 ? View.VISIBLE : View.GONE);
+        }
         Set<String> notes = NoteRepository.snapshotKeys(context);
-        for (int i = 0; i < DAY_IDS.length; i++) {
+        int cellCount = isWeek() ? WEEKDAY_IDS.length : DAY_IDS.length;
+        for (int i = 0; i < cellCount; i++) {
+            if (isWideMonth()) {
+                boolean inMonth = i >= offset && i < monthEnd;
+                views.setViewVisibility(CELL_IDS[i], inMonth ? View.VISIBLE : View.INVISIBLE);
+                if (!inMonth) {
+                    date.add(Calendar.DAY_OF_MONTH, 1);
+                    continue;
+                }
+            }
             String description = bindCell(views, i, date, month, today, notes, colors);
             boolean selected = sameDate(date, today);
             views.setViewVisibility(MARK_IDS[i], selected ? View.VISIBLE : View.INVISIBLE);
-            if (selected) views.setImageViewBitmap(MARK_IDS[i], marker);
+            if (selected) {
+                // Launcher hosts can reuse a view that still has the previous bitmap.
+                views.setImageViewResource(MARK_IDS[i], 0);
+                views.setInt(MARK_IDS[i], "setBackgroundResource", R.drawable.widget_month_today_marker);
+            }
             views.setOnClickPendingIntent(CELL_IDS[i], WidgetUi.open(context, date));
             views.setContentDescription(CELL_IDS[i], description);
             date.add(Calendar.DAY_OF_MONTH, 1);
         }
         manager.updateAppWidget(id, views);
     }
-    private static String bindCell(
+    private String bindCell(
             RemoteViews views,
             int index,
             Calendar date,
@@ -176,9 +238,8 @@ public final class MonthCalendarWidgetProvider extends AppWidgetProvider {
         int month = date.get(Calendar.MONTH) + 1;
         int year = date.get(Calendar.YEAR);
 
-        boolean inDisplayedMonth =
-                date.get(Calendar.MONTH) == displayedMonth.get(Calendar.MONTH)
-                        && year == displayedMonth.get(Calendar.YEAR);
+        boolean inDisplayedMonth = isWeek() || (date.get(Calendar.MONTH) == displayedMonth.get(Calendar.MONTH)
+                && year == displayedMonth.get(Calendar.YEAR));
         boolean isToday = sameDate(date, today);
         boolean isSunday = date.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY;
 
@@ -187,19 +248,23 @@ public final class MonthCalendarWidgetProvider extends AppWidgetProvider {
         boolean hasNote = NoteRepository.has(noteKeys, date);
 
         views.setTextViewText(DAY_IDS[index], Integer.toString(day));
-        views.setTextViewText(
-                LUNAR_IDS[index],
-                HolidayUtil.getShortLabel(day, month, lunar) + (hasNote ? " •" : ""));
+        boolean lunarInsideMarker = isToday && !isWeek();
+        String lunarLabel = isCompact() || isWeek() || lunarInsideMarker
+                ? (lunar.day == 1 ? "1/" + lunar.month : Integer.toString(lunar.day))
+                : HolidayUtil.getShortLabel(day, month, lunar);
+        views.setTextViewText(LUNAR_IDS[index], lunarLabel + (hasNote ? " •" : ""));
 
         int dayColor = isToday
-                ? colors.onAccent
+                ? WidgetUi.GLASS_TEXT
                 : !inDisplayedMonth
                 ? colors.muted
                 : isSunday ? colors.sunday : colors.primary;
 
-        int lunarColor = !inDisplayedMonth
+        int lunarColor = lunarInsideMarker
+                ? WidgetUi.GLASS_TEXT
+                : !inDisplayedMonth
                 ? colors.muted
-                : !holiday.isEmpty()
+                : isSunday || !holiday.isEmpty()
                 ? colors.sunday
                 : hasNote ? colors.accent : colors.secondary;
 
@@ -213,8 +278,36 @@ public final class MonthCalendarWidgetProvider extends AppWidgetProvider {
                 + (holiday.isEmpty() ? "" : ", " + holiday) + (hasNote ? ", có ghi chú" : "");
     }
 
+    private void bindSummary(RemoteViews views, Calendar today, ThemeManager.WidgetStyle colors) {
+        int day = today.get(Calendar.DAY_OF_MONTH);
+        int month = today.get(Calendar.MONTH) + 1;
+        LunarCalendar.LunarDate lunar = LunarCalendar.fromSolar(day, month, today.get(Calendar.YEAR));
+        views.setTextViewText(R.id.wide_calendar_lunar, "Âm lịch " + lunar.day + " tháng " + lunar.month
+                + (lunar.leap ? " nhuận" : ""));
+        if (isWideMonth()) {
+            views.setTextViewText(R.id.wide_calendar_caption, "THÁNG " + month + " · " + today.get(Calendar.YEAR));
+            views.setTextColor(R.id.wide_calendar_caption, colors.secondary);
+            views.setTextViewText(R.id.wide_calendar_day, Integer.toString(day));
+            views.setTextViewText(R.id.wide_month_detail, LunarCalendar.dayCanChi(lunar.julianDay));
+            views.setTextColor(R.id.wide_month_detail, colors.secondary);
+        }
+        String weekday = WidgetUi.weekday(today);
+        String solar = day + " tháng " + month;
+        boolean sunday = today.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY;
+        if (isDay()) {
+            views.setTextViewText(R.id.wide_calendar_caption, weekday);
+            views.setTextColor(R.id.wide_calendar_caption, sunday ? colors.sunday : colors.secondary);
+        }
+        views.setTextViewText(R.id.wide_calendar_weekday, isDay() ? solar + ", " + today.get(Calendar.YEAR)
+                : isWeek() ? weekday + ", " + solar : weekday);
+        views.setTextColor(R.id.wide_calendar_day, colors.primary);
+        views.setTextColor(R.id.wide_calendar_weekday, sunday ? colors.sunday : colors.primary);
+        views.setTextColor(R.id.wide_calendar_lunar, colors.secondary);
+    }
+
     private static boolean isRefreshAction(String action) {
-        return Intent.ACTION_DATE_CHANGED.equals(action)
+        return "miui.appwidget.action.APPWIDGET_UPDATE".equals(action)
+                || Intent.ACTION_DATE_CHANGED.equals(action)
                 || Intent.ACTION_TIME_CHANGED.equals(action)
                 || Intent.ACTION_TIMEZONE_CHANGED.equals(action)
                 || Intent.ACTION_CONFIGURATION_CHANGED.equals(action)
@@ -228,10 +321,10 @@ public final class MonthCalendarWidgetProvider extends AppWidgetProvider {
                 && first.get(Calendar.DAY_OF_YEAR) == second.get(Calendar.DAY_OF_YEAR);
     }
 
-    private static void refreshAllWidgets(Context context) {
+    private void refreshAllWidgets(Context context) {
         AppWidgetManager manager = AppWidgetManager.getInstance(context);
         int[] widgetIds = manager.getAppWidgetIds(
-                new ComponentName(context, MonthCalendarWidgetProvider.class));
+                new ComponentName(context, getClass()));
         for (int widgetId : widgetIds) {
             render(context, manager, widgetId);
         }

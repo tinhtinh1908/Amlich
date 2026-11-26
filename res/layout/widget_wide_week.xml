@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@android:id/background"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@drawable/widget_glass_probe_surface" android:clipToOutline="true">
+  <ImageView android:id="@id/month_widget_background_image" android:layout_width="match_parent"
+      android:layout_height="match_parent" android:scaleType="fitXY" android:visibility="gone"
+      android:contentDescription="@null" />
+  <LinearLayout android:id="@+id/widget_content_surface" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent"
+      android:paddingStart="16dp" android:paddingEnd="16dp" android:paddingTop="9dp" android:paddingBottom="9dp">
+    <LinearLayout android:orientation="horizontal" android:gravity="center_vertical"
+        android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="58dp">
+      <TextClock android:id="@id/wide_calendar_day" android:layout_width="wrap_content"
+          android:layout_height="wrap_content" android:paddingEnd="16dp"
+          android:format12Hour="HH:mm" android:format24Hour="HH:mm"
+          android:fontFamily="sans-serif-medium" android:textSize="43sp"
+          android:includeFontPadding="false" android:maxLines="1" />
+      <LinearLayout android:orientation="vertical" android:layout_width="0dp"
+          android:layout_weight="1" android:layout_height="wrap_content">
+        <TextView android:id="@id/wide_calendar_weekday" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:gravity="end" android:textSize="15sp" android:textStyle="bold"
+            android:maxLines="2" android:ellipsize="end" />
+        <TextView android:id="@id/wide_calendar_lunar" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:gravity="end" android:textSize="12sp"
+            android:maxLines="2" android:ellipsize="end" />
+      </LinearLayout>
+    </LinearLayout>
+    <LinearLayout android:id="@id/month_row_1" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+      <LinearLayout android:id="@id/month_cell_01" android:orientation="vertical" android:gravity="center" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
+        <TextView android:id="@id/month_weekday_1" android:layout_width="match_parent"
+            android:layout_height="14dp" android:gravity="center" android:textSize="10sp"
+            android:includeFontPadding="false" android:text="T2" />
+        <FrameLayout android:layout_width="match_parent" android:layout_height="30dp">
+          <ImageView android:id="@id/month_mark_01" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitCenter" android:contentDescription="@null" android:visibility="invisible" />
+          <TextView android:id="@id/month_day_01" android:textSize="18sp" android:layout_width="match_parent" android:layout_height="match_parent" android:includeFontPadding="false" android:fontFamily="sans-serif" android:maxLines="1" android:ellipsize="end" android:gravity="center" android:textStyle="bold" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="20sp" android:autoSizeStepGranularity="1sp" />
+        </FrameLayout>
+        <TextView android:id="@id/month_lunar_01" android:textSize="10sp" android:layout_width="match_parent" android:layout_height="12dp" android:includeFontPadding="false" android:fontFamily="sans-serif" android:maxLines="1" android:ellipsize="end" android:gravity="center" android:layout_marginTop="1dp" />
+      </LinearLayout>
+      <LinearLayout android:id="@id/month_cell_02" android:orientation="vertical" android:gravity="center" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
+        <TextView android:id="@id/month_weekday_2" android:layout_width="match_parent"
+            android:layout_height="14dp" android:gravity="center" android:textSize="10sp"
+            android:includeFontPadding="false" android:text="T3" />
+        <FrameLayout android:layout_width="match_parent" android:layout_height="30dp">
+          <ImageView android:id="@id/month_mark_02" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitCenter" android:contentDescription="@null" android:visibility="invisible" />
+          <TextView android:id="@id/month_day_02" android:textSize="18sp" android:layout_width="match_parent" android:layout_height="match_parent" android:includeFontPadding="false" android:fontFamily="sans-serif" android:maxLines="1" android:ellipsize="end" android:gravity="center" android:textStyle="bold" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="20sp" android:autoSizeStepGranularity="1sp" />
+        </FrameLayout>
+        <TextView android:id="@id/month_lunar_02" android:textSize="10sp" android:layout_width="match_parent" android:layout_height="12dp" android:includeFontPadding="false" android:fontFamily="sans-serif" android:maxLines="1" android:ellipsize="end" android:gravity="center" android:layout_marginTop="1dp" />
+      </LinearLayout>
+      <LinearLayout android:id="@id/month_cell_03" android:orientation="vertical" android:gravity="center" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
+        <TextView android:id="@id/month_weekday_3" android:layout_width="match_parent"
+            android:layout_height="14dp" android:gravity="center" android:textSize="10sp"
+            android:includeFontPadding="false" android:text="T4" />
+        <FrameLayout android:layout_width="match_parent" android:layout_height="30dp">
+          <ImageView android:id="@id/month_mark_03" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitCenter" android:contentDescription="@null" android:visibility="invisible" />
+          <TextView android:id="@id/month_day_03" android:textSize="18sp" android:layout_width="match_parent" android:layout_height="match_parent" android:includeFontPadding="false" android:fontFamily="sans-serif" android:maxLines="1" android:ellipsize="end" android:gravity="center" android:textStyle="bold" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="20sp" android:autoSizeStepGranularity="1sp" />
+        </FrameLayout>
+        <TextView android:id="@id/month_lunar_03" android:textSize="10sp" android:layout_width="match_parent" android:layout_height="12dp" android:includeFontPadding="false" android:fontFamily="sans-serif" android:maxLines="1" android:ellipsize="end" android:gravity="center" android:layout_marginTop="1dp" />
+      </LinearLayout>
+      <LinearLayout android:id="@id/month_cell_04" android:orientation="vertical" android:gravity="center" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
+        <TextView android:id="@id/month_weekday_4" android:layout_width="match_parent"
+            android:layout_height="14dp" android:gravity="center" android:textSize="10sp"
+            android:includeFontPadding="false" android:text="T5" />
+        <FrameLayout android:layout_width="match_parent" android:layout_height="30dp">
+          <ImageView android:id="@id/month_mark_04" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitCenter" android:contentDescription="@null" android:visibility="invisible" />
+          <TextView android:id="@id/month_day_04" android:textSize="18sp" android:layout_width="match_parent" android:layout_height="match_parent" android:includeFontPadding="false" android:fontFamily="sans-serif" android:maxLines="1" android:ellipsize="end" android:gravity="center" android:textStyle="bold" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="20sp" android:autoSizeStepGranularity="1sp" />
+        </FrameLayout>
+        <TextView android:id="@id/month_lunar_04" android:textSize="10sp" android:layout_width="match_parent" android:layout_height="12dp" android:includeFontPadding="false" android:fontFamily="sans-serif" android:maxLines="1" android:ellipsize="end" android:gravity="center" android:layout_marginTop="1dp" />
+      </LinearLayout>
+      <LinearLayout android:id="@id/month_cell_05" android:orientation="vertical" android:gravity="center" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
+        <TextView android:id="@id/month_weekday_5" android:layout_width="match_parent"
+            android:layout_height="14dp" android:gravity="center" android:textSize="10sp"
+            android:includeFontPadding="false" android:text="T6" />
+        <FrameLayout android:layout_width="match_parent" android:layout_height="30dp">
+          <ImageView android:id="@id/month_mark_05" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitCenter" android:contentDescription="@null" android:visibility="invisible" />
+          <TextView android:id="@id/month_day_05" android:textSize="18sp" android:layout_width="match_parent" android:layout_height="match_parent" android:includeFontPadding="false" android:fontFamily="sans-serif" android:maxLines="1" android:ellipsize="end" android:gravity="center" android:textStyle="bold" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="20sp" android:autoSizeStepGranularity="1sp" />
+        </FrameLayout>
+        <TextView android:id="@id/month_lunar_05" android:textSize="10sp" android:layout_width="match_parent" android:layout_height="12dp" android:includeFontPadding="false" android:fontFamily="sans-serif" android:maxLines="1" android:ellipsize="end" android:gravity="center" android:layout_marginTop="1dp" />
+      </LinearLayout>
+      <LinearLayout android:id="@id/month_cell_06" android:orientation="vertical" android:gravity="center" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
+        <TextView android:id="@id/month_weekday_6" android:layout_width="match_parent"
+            android:layout_height="14dp" android:gravity="center" android:textSize="10sp"
+            android:includeFontPadding="false" android:text="T7" />
+        <FrameLayout android:layout_width="match_parent" android:layout_height="30dp">
+          <ImageView android:id="@id/month_mark_06" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitCenter" android:contentDescription="@null" android:visibility="invisible" />
+          <TextView android:id="@id/month_day_06" android:textSize="18sp" android:layout_width="match_parent" android:layout_height="match_parent" android:includeFontPadding="false" android:fontFamily="sans-serif" android:maxLines="1" android:ellipsize="end" android:gravity="center" android:textStyle="bold" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="20sp" android:autoSizeStepGranularity="1sp" />
+        </FrameLayout>
+        <TextView android:id="@id/month_lunar_06" android:textSize="10sp" android:layout_width="match_parent" android:layout_height="12dp" android:includeFontPadding="false" android:fontFamily="sans-serif" android:maxLines="1" android:ellipsize="end" android:gravity="center" android:layout_marginTop="1dp" />
+      </LinearLayout>
+      <LinearLayout android:id="@id/month_cell_07" android:orientation="vertical" android:gravity="center" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
+        <TextView android:id="@id/month_weekday_7" android:layout_width="match_parent"
+            android:layout_height="14dp" android:gravity="center" android:textSize="10sp"
+            android:includeFontPadding="false" android:text="CN" />
+        <FrameLayout android:layout_width="match_parent" android:layout_height="30dp">
+          <ImageView android:id="@id/month_mark_07" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitCenter" android:contentDescription="@null" android:visibility="invisible" />
+          <TextView android:id="@id/month_day_07" android:textSize="18sp" android:layout_width="match_parent" android:layout_height="match_parent" android:includeFontPadding="false" android:fontFamily="sans-serif" android:maxLines="1" android:ellipsize="end" android:gravity="center" android:textStyle="bold" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="20sp" android:autoSizeStepGranularity="1sp" />
+        </FrameLayout>
+        <TextView android:id="@id/month_lunar_07" android:textSize="10sp" android:layout_width="match_parent" android:layout_height="12dp" android:includeFontPadding="false" android:fontFamily="sans-serif" android:maxLines="1" android:ellipsize="end" android:gravity="center" android:layout_marginTop="1dp" />
+      </LinearLayout>
+    </LinearLayout>
+  </LinearLayout>
+</FrameLayout>
