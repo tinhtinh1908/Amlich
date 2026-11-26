@@ -17,8 +17,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Install Android SDK platform
-        run: sdkmanager "platforms;android-37.2"
+      - name: Set up Android SDK and platform tools
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
+        with:
+          packages: 'platform-tools emulator platforms;android-37.2'
       - uses: gradle/actions/setup-gradle@v4
       - name: Run native calendar and animation regression checks
         run: python3 tools/run_tests.py
