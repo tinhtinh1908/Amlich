@@ -59,7 +59,7 @@ tap('Chọn năm'); capture('03-year-picker'); adb('shell', 'input', 'keyevent',
 tap('Tháng'); assert_navigation(False); capture('04-month-return')
 tap('Hôm nay'); capture('05-month-today')
 tap('Cài đặt'); capture('07-settings')
-settings_text = {n.get('text') for n in hierarchy().iter('node')}
+settings_text = {label(n) for n in hierarchy().iter('node')}
 if not {'Ghi chú', 'Sao lưu'} <= settings_text:
     screen = hierarchy().find('.//node[@scrollable="true"]')
     assert screen is not None, 'Settings scroll view is missing'
@@ -67,7 +67,7 @@ if not {'Ghi chú', 'Sao lưu'} <= settings_text:
     x = str((x1 + x2) // 2)
     adb('shell', 'input', 'swipe', x, str(y1 + (y2 - y1) * 3 // 4),
         x, str(y1 + (y2 - y1) // 3), '350')
-    settings_text = {n.get('text') for n in hierarchy().iter('node')}
+    settings_text = {label(n) for n in hierarchy().iter('node')}
 assert {'Ghi chú', 'Sao lưu'} <= settings_text, 'Note backup setting is missing'
 adb('shell', 'input', 'keyevent', '4')
 adb('shell', 'cmd', 'uimode', 'night', 'no'); time.sleep(2)
