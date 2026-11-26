@@ -10,24 +10,26 @@ def hierarchy():
     adb('shell', 'uiautomator', 'dump', '/sdcard/ui.xml')
     adb('pull', '/sdcard/ui.xml', str(out / 'ui.xml'))
     return ET.parse(out / 'ui.xml').getroot()
+def label(node):
+    return node.get('content-desc') or node.get('text', '')
 def assert_navigation(year):
     root = hierarchy()
-    controls = {n.get('content-desc') for n in root.iter('node') if n.get('clickable') == 'true'}
+    controls = {label(n) for n in root.iter('node') if n.get('clickable') == 'true'}
     assert {'Tháng', 'Năm', 'Cài đặt'} <= controls, controls
     assert ('Hôm nay' in controls) == (not year), controls
     assert ('Chọn năm' in controls) == year, controls
     if year:
         months = [n for n in root.iter('node') if 'Chạm để xem chi tiết' in n.get('content-desc','')]
         assert len(months) >= 6, 'Year grid missing'
-def tap(label):
+def tap(target):
     root = hierarchy()
     for node in root.iter('node'):
-        if node.get('content-desc') == label and node.get('clickable') == 'true':
+        if label(node) == target and node.get('clickable') == 'true':
             x1,y1,x2,y2 = map(int, re.findall(r'\d+', node.get('bounds')))
             adb('shell', 'input', 'tap', str((x1+x2)//2), str((y1+y2)//2))
             time.sleep(1)
             return
-    raise AssertionError('Missing control: ' + label)
+    raise AssertionError('Missing control: ' + target)
 def check_notes():
     root = hierarchy()
     calendar = next(n for n in root.iter('node') if n.get('content-desc') == 'Lịch tháng Việt Nam')
@@ -52,6 +54,14 @@ tap('Tháng'); assert_navigation(False); capture('04-month-return')
 tap('Hôm nay'); capture('05-month-today')
 tap('Cài đặt'); capture('07-settings')
 settings_text = {n.get('text') for n in hierarchy().iter('node')}
+if not {'Ghi chú', 'Sao lưu'} <= settings_text:
+    screen = hierarchy().find('.//node[@scrollable="true"]')
+    assert screen is not None, 'Settings scroll view is missing'
+    x1, y1, x2, y2 = map(int, re.findall(r'\d+', screen.get('bounds')))
+    x = str((x1 + x2) // 2)
+    adb('shell', 'input', 'swipe', x, str(y1 + (y2 - y1) * 3 // 4),
+        x, str(y1 + (y2 - y1) // 3), '350')
+    settings_text = {n.get('text') for n in hierarchy().iter('node')}
 assert {'Ghi chú', 'Sao lưu'} <= settings_text, 'Note backup setting is missing'
 adb('shell', 'input', 'keyevent', '4')
 adb('shell', 'cmd', 'uimode', 'night', 'no'); time.sleep(2)

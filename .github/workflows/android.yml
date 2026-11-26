@@ -25,6 +25,7 @@ jobs:
       - name: Run native calendar and animation regression checks
         run: python3 tools/run_tests.py
       - name: Build debug and release APKs, then run Android lint
+        id: android-build
         run: bash gradlew --no-daemon assembleDebug assembleRelease lintDebug
       - name: Enable hardware acceleration
         run: |
@@ -50,12 +51,14 @@ jobs:
           path: build/ui/
           if-no-files-found: ignore
       - name: Upload installable test APK
+        if: ${{ !cancelled() && steps.android-build.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: AmLichViet-2.6-vc49-debug
           path: build/outputs/apk/debug/*.apk
           if-no-files-found: error
       - name: Upload unsigned release APK
+        if: ${{ !cancelled() && steps.android-build.outcome == 'success' }}
         uses: actions/upload-artifact@v4
         with:
           name: AmLichViet-2.6-vc49-release-unsigned
